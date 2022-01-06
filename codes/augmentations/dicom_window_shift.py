@@ -2,6 +2,7 @@
 reference: https://www.kaggle.com/pestipeti/custom-albumentation-dicomwindowshift"""
 
 import numpy as np
+import random
 from albumentations.core.transforms_interface import ImageOnlyTransform
 
 
@@ -28,7 +29,7 @@ def dicom_window_shift(img, windows, min_max_normalize=True):
         ch = apply_window(img[:, :, i], windows[i][0], windows[i][1])
 
         if min_max_normalize:
-            image[:, :, i] = (ch - ch.min()) / (ch.max() - ch.min())
+            image[:, :, i] = (((ch - ch.min()) / (ch.max() - ch.min())) * 255).astype(np.uint8).astype(np.float32) / 255
         else:
             image[:, :, i] = ch
 
@@ -82,7 +83,7 @@ class DicomWindowShift(ImageOnlyTransform):
     def get_params_dependent_on_targets(self, params):
         windows = []
 
-        for i in range(len(self.channels)):
+        for i in range(self.channels):
             window_width = random.randint(self.window_width_mins[i], self.window_width_maxs[i])
             window_center = random.randint(self.window_center_mins[i], self.window_center_maxs[i])
 

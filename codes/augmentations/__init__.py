@@ -1,1 +1,1 @@
-from DicomWindowShift import DicomWindowShift
+from .dicom_window_shift import DicomWindowShift

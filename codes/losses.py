@@ -20,3 +20,4 @@ class MAELoss(nn.L1Loss):
         nn.L1Loss.__init__(self)
         self.__name__ = 'MAELoss'
         
+     

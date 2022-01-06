@@ -12,7 +12,7 @@ def Activation(name, **params):
     elif name == 'softmax2d':
         return nn.Softmax(dim=1, **params)
     elif name == 'softmax':
-        return nn.Softmax(**params)
+        return nn.Softmax(dim=1, **params)
     elif name == 'logsoftmax':
          return nn.LogSoftmax(**params)
     elif name == 'tanh':

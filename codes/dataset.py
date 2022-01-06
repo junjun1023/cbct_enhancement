@@ -23,7 +23,7 @@ class Dataset(BaseDataset):
             (e.g. noralization, shape manipulation, etc.)
     
     """
-    def __init__(self, path, intensity_aug=None, geometry_aug=None, preprocessing=None, data_range=1.0):
+    def __init__(self, path, intensity_aug=None, geometry_aug=None, preprocessing=None):
         paths = sorted(glob.glob(path))
         self.xs = []
         self.ys = []
@@ -39,8 +39,8 @@ class Dataset(BaseDataset):
             self.ys = self.ys + ct_slices[region[0] + 3: region[1] - 3]
             
         # set both cbct and ct to same WL and WW (0, 1000)
-        self.xs = [hu_window(cbct, window_level=WL, window_width=WW,  show_hist=False) for cbct in self.xs]
-        self.ys = [hu_window(ct, window_level=0, window_width=1000,  show_hist=False) for ct in self.ys]
+#         self.xs = [hu_window(cbct, window_level=WL, window_width=WW,  show_hist=False) for cbct in self.xs]
+#         self.ys = [hu_window(ct, window_level=0, window_width=1000,  show_hist=False) for ct in self.ys]
         
         self.intensity_aug = intensity_aug
         self.geometry_aug = geometry_aug
@@ -50,8 +50,9 @@ class Dataset(BaseDataset):
     def __getitem__(self, i):
 
         # read img
-        x = self.xs[i]
-        y = self.ys[i]
+        x = self.xs[i].pixel_array.copy()
+        y = self.ys[i].pixel_array.copy()
+        
 
         crop_size = (64, 448)
         x = x[crop_size[0]:crop_size[1], crop_size[0]:crop_size[1]]

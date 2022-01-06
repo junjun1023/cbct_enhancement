@@ -65,19 +65,31 @@ def random_erasing(x, p=0.5, sl=0.02, sh=0.4, r1=0.3, **kwargs):
 
                             
 
-def intensity_augmentation():
-        import augmentations
+def training_intensity_augmentation():
+        from .augmentations import DicomWindowShift
         img_transform = [
-                    DicomWindowShift(window_width_mins=(1000),
-                                                                 window_width_maxs=(1000),
-                                                                 window_center_mins=(0),
-                                                                 window_center_maxs=(0),
-                                                                 min_max_normalize=False,
+                    DicomWindowShift(window_width_mins=(500, ),
+                                                                 window_width_maxs=(1200, ),
+                                                                 window_center_mins=(-200, ),
+                                                                 window_center_maxs=(200, ),
+                                                                 min_max_normalize=True,
                                                                  p=1.0)
         ]
         return albu.Compose(img_transform, additional_targets={'image0': 'image'})
 
 
+def validation_intensity_augmentation():
+        from .augmentations import DicomWindowShift
+        img_transform = [
+                    DicomWindowShift(window_width_mins=(1000, ),
+                                                                 window_width_maxs=(1000, ),
+                                                                 window_center_mins=(0, ),
+                                                                 window_center_maxs=(0, ),
+                                                                 min_max_normalize=True,
+                                                                 p=1.0)
+        ]
+        return albu.Compose(img_transform, additional_targets={'image0': 'image'})
+    
 
 
 def get_training_augmentation():

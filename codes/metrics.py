@@ -11,9 +11,9 @@ class PSNR:
         self.name = "PSNR"
 
     @staticmethod
-    def __call__(pr, gt):
+    def __call__(pr, gt, max_val):
         
-        _max = torch.pow(torch.tensor(500, device=pr.device), 2)
+        _max = torch.pow(torch.tensor(max_val, device=pr.device), 2)
         mse = torch.mean(torch.pow(gt - pr, 2))
         
         if mse > 0:
