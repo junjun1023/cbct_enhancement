@@ -20,4 +20,11 @@ class MAELoss(nn.L1Loss):
         nn.L1Loss.__init__(self)
         self.__name__ = 'MAELoss'
         
-     
+        
+# class PerceptualLoss:
+#     from torchvision.models import vgg16_bn
+    
+#     def __init__(self):
+#         self.__name__ == "PerceptualLoss"
+        
+#         self.extractor = vgg16_bn(pretrained=True)
