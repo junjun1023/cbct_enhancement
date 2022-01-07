@@ -7,7 +7,7 @@ import pandas as pd
 import torch
 from torch.utils.data import Dataset as BaseDataset
 
-from .utils import read_dicom, hu_window, valid_slices
+from .utils import read_dicom, hu_window, valid_slices, hu_clip
 
 
 class Dataset(BaseDataset):
@@ -58,6 +58,7 @@ class Dataset(BaseDataset):
         x = x[crop_size[0]:crop_size[1], crop_size[0]:crop_size[1]]
         y = y[crop_size[0]:crop_size[1], crop_size[0]:crop_size[1]]
         
+
         if self.intensity_aug:
             sample = self.intensity_aug(image=x, image0=y)
             x = np.squeeze(sample["image"])
@@ -77,9 +78,28 @@ class Dataset(BaseDataset):
         x = x[:, crop_size[0]:crop_size[1], crop_size[0]:crop_size[1]]
         y = y[:, crop_size[0]:crop_size[1], crop_size[0]:crop_size[1]]
         """
+        
+        x_f = self.xs[i].pixel_array.copy()
+        y_f = self.ys[i].pixel_array.copy()
 
+        _xs = []
+        _ys = []
+        hu_range = [(-512, -257), (-256, -1), (0, 255), (256, 511)]
+        for hu in hu_range:
+            _x = hu_clip(x_f, hu[1], hu[0], True)
+            _y = hu_clip(y_f, hu[1], hu[0], True)
+            _x = np.expand_dims(_x, 0)
+            _y = np.expand_dims(_y, 0)
+            
+            _xs += [_x]
+            _ys += [_y]
 
-        return x, y
+        x1, x2, x3, x4 = _xs
+        y1, y2, y3, y4 = _ys
+            
+        return x, y, x1, y1, x2, y2, x3, y3, x4, y4
+    
         
     def __len__(self):
         return len(self.xs)
+    
