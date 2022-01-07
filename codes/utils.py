@@ -12,23 +12,25 @@ def read_dicom(path):
     return slices
 
 
+def hu_clip(scan, upper, lower, min_max_normalize=True):
+    scan = np.where(scan < lower, lower, scan)
+    scan = np.where(scan > upper, upper, scan)
 
-def hu_window(scan, window_level=40, window_width=80, show_hist = False):
+    if min_max_normalize:
+        scan = (((scan - scan.min()) / (scan.max() - scan.min())) * 255).astype(np.uint8).astype(np.float32) / 255
+        
+    return scan
+
+
+def hu_window(scan, window_level=40, window_width=80, min_max_normalize=True):
     scan = scan.pixel_array.copy()
-    window = [window_level-window_width/2, window_width/2-window_level]
+    window = [window_level-window_width//2, window_width//2-window_level]
     
     scan = np.where(scan < window[0], window[0], scan)
     scan = np.where(scan > window[1], window[1], scan)
     
-    if show_hist:
-        plt.figure(0, figsize=(6,6))
-        plt.imshow(scan, 'gray')
-
-        plt.figure(1, figsize=(6,6))
-        plt.hist(scan.flatten(), color='c')
-        plt.xlabel("Hounsfield Units (HU)")
-        plt.ylabel("Frequency")
-        plt.show()
+    if min_max_normalize:
+        scan = (((scan - scan.min()) / (scan.max() - scan.min())) * 255).astype(np.uint8).astype(np.float32) / 255
 
     return scan
 
