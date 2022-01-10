@@ -68,11 +68,12 @@ def random_erasing(x, p=0.5, sl=0.02, sh=0.4, r1=0.3, **kwargs):
 def training_intensity_augmentation():
         from .augmentations import DicomWindowShift
         img_transform = [
-                    DicomWindowShift(window_width_mins=(200, ),
-                                                                 window_width_maxs=(300, ),
-                                                                 window_center_mins=(-400, ),
-                                                                 window_center_maxs=(400, ),
+                    DicomWindowShift(window_width_mins=(1000, ),
+                                                                 window_width_maxs=(1000, ),
+                                                                 window_center_mins=(0, ),
+                                                                 window_center_maxs=(0, ),
                                                                  min_max_normalize=True,
+                                                                 zipped=False,
                                                                  p=1.0)
         ]
         return albu.Compose(img_transform, additional_targets={'image0': 'image'})
@@ -86,6 +87,7 @@ def validation_intensity_augmentation():
                                                                  window_center_mins=(0, ),
                                                                  window_center_maxs=(0, ),
                                                                  min_max_normalize=True,
+                                                                 zipped=False,
                                                                  p=1.0)
         ]
         return albu.Compose(img_transform, additional_targets={'image0': 'image'})
