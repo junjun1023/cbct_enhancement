@@ -17,6 +17,8 @@ def Activation(name, **params):
          return nn.LogSoftmax(**params)
     elif name == 'tanh':
         return nn.Tanh()
+    elif name== "hardtanh":
+        return nn.Hardtanh(min_val=0, max_val=1)
     elif name == 'argmax':
         return ArgMax(**params)
     elif name == 'argmax2d':
