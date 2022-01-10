@@ -18,7 +18,7 @@ def apply_window(image, center, width):
     return image
 
 
-def dicom_window_shift(img, windows, min_max_normalize=True):
+def dicom_window_shift(img, windows, min_max_normalize=True, zipped=False):
     channels = len(windows)
     image = np.zeros((img.shape[0], img.shape[1], channels))
 
@@ -29,9 +29,12 @@ def dicom_window_shift(img, windows, min_max_normalize=True):
         ch = apply_window(img[:, :, i], windows[i][0], windows[i][1])
 
         if min_max_normalize:
-            image[:, :, i] = (((ch - ch.min()) / (ch.max() - ch.min())) * 255).astype(np.uint8).astype(np.float32) / 255
-        else:
-            image[:, :, i] = ch
+            ch = ((ch - ch.min()) / (ch.max() - ch.min()))
+        
+        if zipped:
+            ch = (ch*255).astype(np.uint8).astype(np.float32) / 255
+        
+        image[:, :, i] = ch
 
     return image
 
@@ -60,6 +63,7 @@ class DicomWindowShift(ImageOnlyTransform):
             window_center_mins=(40, 80, 40),
             window_center_maxs=(40, 80, 40),
             min_max_normalize=True,
+            zipped=False,
             always_apply=False,
             p=0.5,
     ):
@@ -74,10 +78,11 @@ class DicomWindowShift(ImageOnlyTransform):
         assert len(self.window_center_mins) == len(self.window_center_maxs)
         
         self.channels = len(self.window_width_mins)
+        self.zipped = zipped
 
 
     def apply(self, image, windows=(), min_max_normalize=True, **params):
-        return dicom_window_shift(image, windows, min_max_normalize)
+        return dicom_window_shift(image, windows, min_max_normalize, self.zipped)
 
     
     def get_params_dependent_on_targets(self, params):
