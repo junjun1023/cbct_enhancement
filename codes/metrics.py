@@ -20,3 +20,20 @@ class PSNR:
             return 10 * torch.log10(_max / mse)
         
         return 99
+
+    
+class SNR:
+    def __init__(self):
+        self.name = "SNR"
+        
+    @staticmethod
+    def __call__(pr, gt):
+        '''
+        input tensors of same shape
+
+        return SNR
+        '''
+        upper = torch.sum(torch.pow(gt, 2))
+        lower = torch.sum(torch.pow(gt - pr, 2))
+        
+        return 10 * torch.log10(upper / lower)
