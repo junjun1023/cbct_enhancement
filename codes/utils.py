@@ -12,12 +12,15 @@ def read_dicom(path):
     return slices
 
 
-def hu_clip(scan, upper, lower, min_max_normalize=True):
+def hu_clip(scan, upper, lower, min_max_normalize=True, zipped=False):
     scan = np.where(scan < lower, lower, scan)
     scan = np.where(scan > upper, upper, scan)
 
     if min_max_normalize:
-        scan = (((scan - scan.min()) / (scan.max() - scan.min())) * 255).astype(np.uint8).astype(np.float32) / 255
+        scan = ((scan - scan.min()) / (scan.max() - scan.min()))
+    
+    if zipped:
+        scan = (scan*255).astype(np.uint8).astype(np.float32) / 255
         
     return scan
 
