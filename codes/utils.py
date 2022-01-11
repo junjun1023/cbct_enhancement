@@ -3,6 +3,62 @@ import os
 import pydicom
 import numpy as np
 import matplotlib.pyplot as plt
+import cv2
+
+
+# helper function for data visualization
+def visualize(**images):
+    """PLot images in one row."""
+    n = len(images)
+    plt.figure(figsize=(16, 5))
+    for i, (name, image) in enumerate(images.items()):
+        plt.subplot(1, n, i + 1)
+        plt.xticks([])
+        plt.yticks([])
+        plt.title(' '.join(name.split('_')).title())
+        plt.imshow(image, 'gray')
+    plt.show()
+
+
+def find_mask(img, plot=False):
+    
+    assert len(img.shape) == 2, "Only gray scale image is acceptable"
+ 
+    if np.max(img) == 1:
+        img = (img * 255).astype(np.uint8)
+    
+    img[img != 0] = 255
+    
+    cnts, hier = cv2.findContours(img.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    c = max(cnts, key = cv2.contourArea)
+
+    if plot:
+        img = np.zeros((img.shape[0], img.shape[1], 3))
+        cv2.drawContours(img, [c], 0, (255, 255, 255), 3)
+        plt.figure(0, figsize=(6,6))
+        plt.imshow(img)
+        plt.show()
+        
+    img = np.zeros((img.shape[0], img.shape[1], 3))
+    cv2.drawContours(img, [c], 0, (255, 255, 255), -1)
+    img = img[:, :, 0].astype(np.float32) / 255
+    
+    return img
+    
+
+def grow_mask_outward(img, kernel=(5, 5)):
+    # https://stackoverflow.com/questions/55948254/scale-contours-up-grow-outward
+    kernel = np.ones(kernel, np.uint8)
+    img = cv2.dilate(img, kernel, iterations = 1)
+    img = find_mask(img, False)
+    return img
+    
+    
+    
+def get_mask(img):
+    mask = find_mask(img, False)
+    mask = grow_mask_outward(mask)
+    return mask
 
 
 def read_dicom(path):
