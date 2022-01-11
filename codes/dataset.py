@@ -7,7 +7,7 @@ import pandas as pd
 import torch
 from torch.utils.data import Dataset as BaseDataset
 
-from .utils import read_dicom, hu_window, valid_slices, hu_clip
+from .utils import read_dicom, valid_slices, hu_clip, get_mask
 
 
 class Dataset(BaseDataset):
@@ -21,9 +21,8 @@ class Dataset(BaseDataset):
             (e.g. flip, scale, etc.)
         preprocessing (albumentations.Compose): data preprocessing 
             (e.g. noralization, shape manipulation, etc.)
-    
     """
-    def __init__(self, path, intensity_aug=None, geometry_aug=None, preprocessing=None):
+    def __init__(self, path, intensity_aug=None, geometry_aug=None, preprocessing=None, tolerance=20):
         paths = sorted(glob.glob(path))
         self.xs = []
         self.ys = []
@@ -38,13 +37,11 @@ class Dataset(BaseDataset):
             self.xs = self.xs + cbct_slices[region[0] + 3: region[1] - 3]
             self.ys = self.ys + ct_slices[region[0] + 3: region[1] - 3]
             
-        # set both cbct and ct to same WL and WW (0, 1000)
-#         self.xs = [hu_window(cbct, window_level=WL, window_width=WW,  show_hist=False) for cbct in self.xs]
-#         self.ys = [hu_window(ct, window_level=0, window_width=1000,  show_hist=False) for ct in self.ys]
         
         self.intensity_aug = intensity_aug
         self.geometry_aug = geometry_aug
         self.preprocessing = preprocessing
+
         
     
     def __getitem__(self, i):
@@ -53,12 +50,36 @@ class Dataset(BaseDataset):
         x = self.xs[i].pixel_array.copy()
         y = self.ys[i].pixel_array.copy()
         
+        # split to multiple bins
+        _xs = []
+        _ys = []
+        hu_range = [(-512, -257), (-256, -1), (0, 255), (256, 511)]
+        for hu in hu_range:
+            _x = hu_clip(x, hu[1], hu[0], True)
+            _y = hu_clip(y, hu[1], hu[0], True)
+            _x = np.expand_dims(_x, 0)
+            _y = np.expand_dims(_y, 0)
+            
+            _xs += [_x]
+            _ys += [_y]
 
-#         crop_size = (64, 448)
-#         x = x[crop_size[0]:crop_size[1], crop_size[0]:crop_size[1]]
-#         y = y[crop_size[0]:crop_size[1], crop_size[0]:crop_size[1]]
+        x1, x2, x3, x4 = _xs
+        y1, y2, y3, y4 = _ys
         
-
+        mask_x = get_mask(x1.squeeze())
+        mask_y = get_mask(y1.squeeze())
+        
+        x = x * mask_x
+        y = y * mask_y
+        x1 = x1 * mask_x
+        y1 = y1 * mask_y
+        x2 = x2 * mask_x
+        y2 = y2 * mask_y
+        x3 = x3 * mask_x
+        y3 = y3 * mask_y
+        x4 = x4 * mask_x
+        y4 = y4 * mask_y       
+        
         if self.intensity_aug:
             sample = self.intensity_aug(image=x, image0=y)
             x = np.squeeze(sample["image"])
@@ -73,30 +94,7 @@ class Dataset(BaseDataset):
         x = np.expand_dims(x, 0).astype(np.float32)
         y = np.expand_dims(y, 0).astype(np.float32)
         
-        """
-        crop_size = (64, 448)
-        x = x[:, crop_size[0]:crop_size[1], crop_size[0]:crop_size[1]]
-        y = y[:, crop_size[0]:crop_size[1], crop_size[0]:crop_size[1]]
-        """
-        
-        x_f = self.xs[i].pixel_array.copy()
-        y_f = self.ys[i].pixel_array.copy()
 
-        _xs = []
-        _ys = []
-        hu_range = [(-512, -257), (-256, -1), (0, 255), (256, 511)]
-        for hu in hu_range:
-            _x = hu_clip(x_f, hu[1], hu[0], True)
-            _y = hu_clip(y_f, hu[1], hu[0], True)
-            _x = np.expand_dims(_x, 0)
-            _y = np.expand_dims(_y, 0)
-            
-            _xs += [_x]
-            _ys += [_y]
-
-        x1, x2, x3, x4 = _xs
-        y1, y2, y3, y4 = _ys
-            
         return x, y, x1, y1, x2, y2, x3, y3, x4, y4
     
         
