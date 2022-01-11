@@ -54,9 +54,9 @@ class Dataset(BaseDataset):
         y = self.ys[i].pixel_array.copy()
         
 
-        crop_size = (64, 448)
-        x = x[crop_size[0]:crop_size[1], crop_size[0]:crop_size[1]]
-        y = y[crop_size[0]:crop_size[1], crop_size[0]:crop_size[1]]
+#         crop_size = (64, 448)
+#         x = x[crop_size[0]:crop_size[1], crop_size[0]:crop_size[1]]
+#         y = y[crop_size[0]:crop_size[1], crop_size[0]:crop_size[1]]
         
 
         if self.intensity_aug:
