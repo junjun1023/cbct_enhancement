@@ -100,8 +100,8 @@ def get_training_augmentation():
                 albu.HorizontalFlip(p=0.5),
                 albu.ShiftScaleRotate(scale_limit=0.1, rotate_limit=0, shift_limit=0.1, p=1, border_mode=0),
                 albu.RandomCrop(384, 384, p=0.5),
-                albu.LongestMaxSize(max_size=384, interpolation=cv2.INTER_LINEAR_EXACT, always_apply=True),
-                albu.PadIfNeeded(min_height=384, min_width=384, always_apply=True, border_mode=0),
+                albu.LongestMaxSize(max_size=512, interpolation=cv2.INTER_LINEAR_EXACT, always_apply=True),
+                albu.PadIfNeeded(min_height=512, min_width=512, always_apply=True, border_mode=0),
         ]
         return albu.Compose(train_transform)
 
@@ -111,8 +111,8 @@ def get_validation_augmentation():
         """Add paddings to make image shape divisible by 32"""
         test_transform = [
                 # ref: https://github.com/albumentations-team/albumentations/issues/640
-                albu.LongestMaxSize(max_size=384, interpolation=cv2.INTER_LINEAR_EXACT, always_apply=True),
-                albu.PadIfNeeded(384, 384, always_apply=True, border_mode=0)
+                albu.LongestMaxSize(max_size=512, interpolation=cv2.INTER_LINEAR_EXACT, always_apply=True),
+                albu.PadIfNeeded(512, 512, always_apply=True, border_mode=0)
         ]
         return albu.Compose(test_transform)
 
