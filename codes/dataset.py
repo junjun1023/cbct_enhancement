@@ -69,8 +69,6 @@ class Dataset(BaseDataset):
         mask_x = get_mask(x1.squeeze())
         mask_y = get_mask(y1.squeeze())
         
-        x = x * mask_x
-        y = y * mask_y
         x1 = x1 * mask_x
         y1 = y1 * mask_y
         x2 = x2 * mask_x
@@ -85,6 +83,10 @@ class Dataset(BaseDataset):
             x = np.squeeze(sample["image"])
             y = np.squeeze(sample["image0"])
             
+        x_min = abs(x.min())
+        y_min = abs(y.min())
+        x = (x + x_min) * mask_x - x_min
+        y = (y + y_min) * mask_y - y_min
             
         if self.geometry_aug:
             sample = self.geometry_aug(image=x, mask=y)
