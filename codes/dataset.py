@@ -87,17 +87,24 @@ class Dataset(BaseDataset):
         y_min = abs(y.min())
         x = (x + x_min) * mask_x - x_min
         y = (y + y_min) * mask_y - y_min
+        
+        upper = ((-256) - (-500))/(500-(-500))
+        lower = ((-257) - (-500))/(500-(-500))
+        mask_x = hu_clip(x, upper, lower, True)
+        mask_y = hu_clip(y, upper, lower, True)
             
         if self.geometry_aug:
-            sample = self.geometry_aug(image=x, mask=y)
-            x, y = sample["image"], sample["mask"]
+            sample = self.geometry_aug(image=x, image0=y, mask=mask_x, mask0=mask_y)
+            x, y, mask_x, mask_y = sample["image"], sample["image0"], sample["mask"], sample["mask0"]
             
         
         x = np.expand_dims(x, 0).astype(np.float32)
         y = np.expand_dims(y, 0).astype(np.float32)
+        mask_x = np.expand_dims(mask_x, 0).astype(np.float32)
+        mask_y = np.expand_dims(mask_y, 0).astype(np.float32)
         
 
-        return x, y, x1, y1, x2, y2, x3, y3, x4, y4
+        return x, y, mask_x, mask_y, x1, y1, x2, y2, x3, y3, x4, y4
     
         
     def __len__(self):
