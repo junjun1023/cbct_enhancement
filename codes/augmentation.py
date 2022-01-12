@@ -103,7 +103,7 @@ def get_training_augmentation():
                 albu.LongestMaxSize(max_size=384, interpolation=cv2.INTER_LINEAR_EXACT, always_apply=True),
                 albu.PadIfNeeded(min_height=384, min_width=384, always_apply=True, border_mode=0),
         ]
-        return albu.Compose(train_transform)
+        return albu.Compose(train_transform, additional_targets={'image0': 'image', 'mask0': 'mask'})
 
 
 
@@ -115,7 +115,7 @@ def get_validation_augmentation():
                 albu.LongestMaxSize(max_size=384, interpolation=cv2.INTER_LINEAR_EXACT, always_apply=True),
                 albu.PadIfNeeded(384, 384, always_apply=True, border_mode=0)
         ]
-        return albu.Compose(test_transform)
+        return albu.Compose(test_transform, additional_targets={'image0': 'image', 'mask0': 'mask'})
 
 
 def to_tensor(x, **kwargs):
