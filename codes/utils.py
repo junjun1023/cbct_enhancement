@@ -4,6 +4,7 @@ import pydicom
 import numpy as np
 import matplotlib.pyplot as plt
 import cv2
+import torch
 
 
 # helper function for data visualization
@@ -66,6 +67,15 @@ def read_dicom(path):
     slices = [pydicom.read_file(s) for s in g]
     slices.sort(key=lambda x: int(x.InstanceNumber))
     return slices
+
+
+def hu_clip_tensor(scan, upper, lower, min_max_normalize=True):
+    scan = torch.where(scan < lower, lower, scan)
+    scan = torch.where(scan > upper, upper, scan)
+    if min_max_normalize:
+        scan = ((scan - scan.min()) / (scan.max() - scan.min()))
+        
+    return scan
 
 
 def hu_clip(scan, upper, lower, min_max_normalize=True, zipped=False):
