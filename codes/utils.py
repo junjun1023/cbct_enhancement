@@ -28,6 +28,13 @@ def bounded(img, bound):
 
 
 def min_max_normalize(img):
+    
+    if img.min() == img.max():
+        if isinstance(img, np.ndarray):
+            return np.zeros(img.shape, dtype=np.float32)
+        elif isinstance(img, torch.Tensor):
+            return torch.zeros(img.size(), dtype=torch.float, device=img.device)
+    
     img = (img - img.min())/(img.max()-img.min())
     return img
 
