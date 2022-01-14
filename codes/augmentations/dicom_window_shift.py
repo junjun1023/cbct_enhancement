@@ -62,7 +62,7 @@ class DicomWindowShift(ImageOnlyTransform):
             window_width_maxs=(80, 200, 380),
             window_center_mins=(40, 80, 40),
             window_center_maxs=(40, 80, 40),
-            min_max_normalize=True,
+            min_max_norm=True,
             zipped=False,
             always_apply=False,
             p=0.5,
@@ -72,7 +72,7 @@ class DicomWindowShift(ImageOnlyTransform):
         self.window_width_maxs = window_width_maxs
         self.window_center_mins = window_center_mins
         self.window_center_maxs = window_center_maxs
-        self.min_max_normalize = min_max_normalize
+        self.min_max_norm = min_max_norm
 
         assert len(self.window_width_mins) ==  len(self.window_width_maxs)
         assert len(self.window_center_mins) == len(self.window_center_maxs)
@@ -81,8 +81,8 @@ class DicomWindowShift(ImageOnlyTransform):
         self.zipped = zipped
 
 
-    def apply(self, image, windows=(), min_max_normalize=True, **params):
-        return dicom_window_shift(image, windows, min_max_normalize, self.zipped)
+    def apply(self, image, windows=(), min_max_norm=True, **params):
+        return dicom_window_shift(image, windows, min_max_norm, self.zipped)
 
     
     def get_params_dependent_on_targets(self, params):
@@ -94,7 +94,7 @@ class DicomWindowShift(ImageOnlyTransform):
 
             windows.append([window_center, window_width])
 
-        return {"windows": windows, "min_max_normalize": self.min_max_normalize}
+        return {"windows": windows, "min_max_norm": self.min_max_norm}
     
 
     @property
@@ -103,6 +103,6 @@ class DicomWindowShift(ImageOnlyTransform):
     
 
     def get_transform_init_args_names(self):
-        return "window_width_mins", "window_width_maxs", "window_center_mins", "window_center_maxs", "min_max_normalize"
+        return "window_width_mins", "window_width_maxs", "window_center_mins", "window_center_maxs", "min_max_norm"
 
     
