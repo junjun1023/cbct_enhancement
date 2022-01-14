@@ -19,6 +19,17 @@ def visualize(**images):
         plt.title(' '.join(name.split('_')).title())
         plt.imshow(image, 'gray')
     plt.show()
+    
+    
+def bounded(img, bound):
+    if img.min() < bound[0] or img.max() > bound[1]:
+        return False
+    return True
+
+
+def min_max_normalize(img):
+    img = (img - img.min())/(img.max()-img.min())
+    return img
 
 
 def find_mask(img, plot=False):
@@ -69,21 +80,21 @@ def read_dicom(path):
     return slices
 
 
-def hu_clip_tensor(scan, upper, lower, min_max_normalize=True):
+def hu_clip_tensor(scan, upper, lower, min_max_norm=True):
     scan = torch.where(scan < lower, lower, scan)
     scan = torch.where(scan > upper, upper, scan)
-    if min_max_normalize:
-        scan = ((scan - scan.min()) / (scan.max() - scan.min()))
+    if min_max_norm:
+        scan = min_max_normalize(scan)
         
     return scan
 
 
-def hu_clip(scan, upper, lower, min_max_normalize=True, zipped=False):
+def hu_clip(scan, upper, lower, min_max_norm=True, zipped=False):
     scan = np.where(scan < lower, lower, scan)
     scan = np.where(scan > upper, upper, scan)
 
-    if min_max_normalize:
-        scan = ((scan - scan.min()) / (scan.max() - scan.min()))
+    if min_max_norm:
+        scan = min_max_normalize(scan)
     
     if zipped:
         scan = (scan*255).astype(np.uint8).astype(np.float32) / 255
