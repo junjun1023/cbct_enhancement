@@ -72,7 +72,7 @@ def training_intensity_augmentation():
                                                                  window_width_maxs=(1000, ),
                                                                  window_center_mins=(0, ),
                                                                  window_center_maxs=(0, ),
-                                                                 min_max_normalize=True,
+                                                                 min_max_norm=False,
                                                                  zipped=False,
                                                                  p=1.0)
         ]
@@ -86,7 +86,7 @@ def validation_intensity_augmentation():
                                                                  window_width_maxs=(1000, ),
                                                                  window_center_mins=(0, ),
                                                                  window_center_maxs=(0, ),
-                                                                 min_max_normalize=True,
+                                                                 min_max_norm=False,
                                                                  zipped=False,
                                                                  p=1.0)
         ]
@@ -103,7 +103,7 @@ def get_training_augmentation():
                 albu.LongestMaxSize(max_size=384, interpolation=cv2.INTER_LINEAR_EXACT, always_apply=True),
                 albu.PadIfNeeded(min_height=384, min_width=384, always_apply=True, border_mode=0),
         ]
-        return albu.Compose(train_transform, additional_targets={'image0': 'image', 'mask0': 'mask'})
+        return albu.Compose(train_transform, additional_targets={'image0': 'image', 'image1': 'image', 'image2': 'image'})
 
 
 
@@ -115,7 +115,7 @@ def get_validation_augmentation():
                 albu.LongestMaxSize(max_size=384, interpolation=cv2.INTER_LINEAR_EXACT, always_apply=True),
                 albu.PadIfNeeded(384, 384, always_apply=True, border_mode=0)
         ]
-        return albu.Compose(test_transform, additional_targets={'image0': 'image', 'mask0': 'mask'})
+        return albu.Compose(test_transform, additional_targets={'image0': 'image', 'image1': 'image', 'image2': 'image'})
 
 
 def to_tensor(x, **kwargs):
