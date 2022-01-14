@@ -7,7 +7,7 @@ import pandas as pd
 import torch
 from torch.utils.data import Dataset as BaseDataset
 
-from .utils import read_dicom, valid_slices, hu_clip, get_mask
+from .utils import read_dicom, valid_slices, hu_clip, get_mask, bounded, min_max_normalize
 
 
 class Dataset(BaseDataset):
@@ -82,29 +82,44 @@ class Dataset(BaseDataset):
             sample = self.intensity_aug(image=x, image0=y)
             x = np.squeeze(sample["image"])
             y = np.squeeze(sample["image0"])
-            
-        x_min = abs(x.min())
-        y_min = abs(y.min())
-        x = (x + x_min) * mask_x - x_min
-        y = (y + y_min) * mask_y - y_min
+
         
-        upper = ((-256) - (-500))/(500-(-500))
-        lower = ((-257) - (-500))/(500-(-500))
+        x_min = x.min()
+        x_max = x.max()
+        y_min = y.min()
+        y_max = y.max()
+        if not bounded(x, (0, 1)):
+            x = min_max_normalize(x)
+        if not bounded(y, (0, 1)):
+            y = min_max_normalize(y)
+            
+        x = x * mask_x
+        y = y * mask_y
+
+        
+        assert x_min == -500, "make a new hu value for cbct"
+        assert x_max == 500, "make a new hu value for cbct"
+        upper = ((-256) - (x_min))/(x_max-(x_min))
+        lower = ((-257) - (x_min))/(x_max-(x_min))
         mask_x = hu_clip(x, upper, lower, True)
+        
+        assert y_min == -500, "make a new hu value for ct"
+        assert y_max == 500, "make a new hu value for ct"
+        upper = ((-256) - (y_min))/(y_max-(y_min))
+        lower = ((-257) - (y_min))/(y_max-(y_min))
         mask_y = hu_clip(y, upper, lower, True)
             
         if self.geometry_aug:
-            sample = self.geometry_aug(image=x, image0=y, mask=mask_x, mask0=mask_y)
-            x, y, mask_x, mask_y = sample["image"], sample["image0"], sample["mask"], sample["mask0"]
+            sample = self.geometry_aug(image=x, image0=y, image1=mask_x, image2=mask_y)
+            x, y, mask_x, mask_y = sample["image"], sample["image0"], sample["image1"], sample["image2"]
             
-        
         x = np.expand_dims(x, 0).astype(np.float32)
         y = np.expand_dims(y, 0).astype(np.float32)
         mask_x = np.expand_dims(mask_x, 0).astype(np.float32)
         mask_y = np.expand_dims(mask_y, 0).astype(np.float32)
         
 
-        return x, y, mask_x, mask_y, x1, y1, x2, y2, x3, y3, x4, y4
+        return x, y, mask_x, mask_y, x1, y1, x4, y4
     
         
     def __len__(self):
