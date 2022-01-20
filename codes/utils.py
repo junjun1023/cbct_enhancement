@@ -27,15 +27,22 @@ def bounded(img, bound):
     return True
 
 
-def min_max_normalize(img):
+def min_max_normalize(img, mmax=None, mmin=None):
     
-    if img.min() == img.max():
+    if mmin == None:
+        mmin = img.min()
+    if mmax == None:
+        mmax = img.max()
+    
+#     assert img.min() >= mmin && img.max() <= mmax, "Image values is out of assigned range"
+    
+    if mmin == mmax:
         if isinstance(img, np.ndarray):
             return np.zeros(img.shape, dtype=np.float32)
         elif isinstance(img, torch.Tensor):
             return torch.zeros(img.size(), dtype=torch.float, device=img.device)
-    
-    img = (img - img.min())/(img.max()-img.min())
+
+    img = (img - mmin)/(mmax-mmin)
     return img
 
 
@@ -43,7 +50,7 @@ def find_mask(img, plot=False):
     
     assert len(img.shape) == 2, "Only gray scale image is acceptable"
  
-    if np.max(img) == 1:
+    if np.max(img) <= 1:
         img = (img * 255).astype(np.uint8)
     
     img[img != 0] = 255
@@ -75,6 +82,8 @@ def grow_mask_outward(img, kernel=(5, 5), iterations = 1):
     
     
 def get_mask(img):
+    if np.max(img) == 0:
+        return np.zeros(img.shape, dtype=np.float32)
     mask = find_mask(img, False)
     mask = grow_mask_outward(mask)
     return mask
@@ -91,7 +100,7 @@ def hu_clip_tensor(scan, upper, lower, min_max_norm=True):
     scan = torch.where(scan < lower, lower, scan)
     scan = torch.where(scan > upper, upper, scan)
     if min_max_norm:
-        scan = min_max_normalize(scan)
+        scan = min_max_normalize(scan, upper, lower)
         
     return scan
 
@@ -101,7 +110,7 @@ def hu_clip(scan, upper, lower, min_max_norm=True, zipped=False):
     scan = np.where(scan > upper, upper, scan)
 
     if min_max_norm:
-        scan = min_max_normalize(scan)
+        scan = min_max_normalize(scan, upper, lower)
     
     if zipped:
         scan = (scan*255).astype(np.uint8).astype(np.float32) / 255
@@ -109,15 +118,15 @@ def hu_clip(scan, upper, lower, min_max_norm=True, zipped=False):
     return scan
 
 
-def hu_window(scan, window_level=40, window_width=80, min_max_normalize=True):
+def hu_window(scan, window_level=40, window_width=80, min_max_norm=True):
     scan = scan.pixel_array.copy()
     window = [window_level-window_width//2, window_width//2-window_level]
     
     scan = np.where(scan < window[0], window[0], scan)
     scan = np.where(scan > window[1], window[1], scan)
     
-    if min_max_normalize:
-        scan = (((scan - scan.min()) / (scan.max() - scan.min())) * 255).astype(np.uint8).astype(np.float32) / 255
+    if min_max_norm:
+        scan = min_max_normalize(scan, upper, lower)
 
     return scan
 
