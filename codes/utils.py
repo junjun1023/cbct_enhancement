@@ -52,23 +52,23 @@ def find_mask(img, plot=False):
     c = max(cnts, key = cv2.contourArea)
 
     if plot:
-        img = np.zeros((img.shape[0], img.shape[1], 3))
+        img = np.zeros((img.shape[0], img.shape[1], 3), dtype=np.uint8)
         cv2.drawContours(img, [c], 0, (255, 255, 255), 3)
         plt.figure(0, figsize=(6,6))
         plt.imshow(img)
         plt.show()
         
-    img = np.zeros((img.shape[0], img.shape[1], 3))
+    img = np.zeros((img.shape[0], img.shape[1], 3), dtype=np.uint8)
     cv2.drawContours(img, [c], 0, (255, 255, 255), -1)
     img = img[:, :, 0].astype(np.float32) / 255
     
     return img
     
 
-def grow_mask_outward(img, kernel=(5, 5)):
+def grow_mask_outward(img, kernel=(5, 5), iterations = 1):
     # https://stackoverflow.com/questions/55948254/scale-contours-up-grow-outward
     kernel = np.ones(kernel, np.uint8)
-    img = cv2.dilate(img, kernel, iterations = 1)
+    img = cv2.dilate(img, kernel, iterations = iterations)
     img = find_mask(img, False)
     return img
     
