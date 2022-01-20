@@ -89,6 +89,14 @@ def get_mask(img):
     return mask
 
 
+def read_npy(path):
+    g = glob.glob(os.path.join(path, "*.npy"))
+    slices = [np.load(s) for s in g]
+    slices.sort()
+    return slices
+
+
+
 def read_dicom(path):
     g = glob.glob(os.path.join(path, '*.dcm'))
     slices = [pydicom.read_file(s) for s in g]
@@ -139,9 +147,29 @@ def show_raw_pixel(slices):
     plt.show()
     
     
+
+def valid_slices(cbcts, cts, empty_val=0)
+    found_start = False
+    start = 0
+    end = -1
+    
+    # iterate through cbct slices, and find which regions aren't all black (-1000)
+    for idx, sli in enumerate(cbcts):
+        image = sli
+        
+        if not found_start and len(np.unique(image))!=1:
+            start = idx
+            found_start = True
+                                   
+        elif found_start and len(np.unique(image)) == 1:
+            end = idx
+            break
+        
+    return start, end
+
     
 # return  a region where cbct images aren't all black
-def valid_slices(cbcts, cts):
+def valid_slices_dicom(cbcts, cts):
     found_start = False
     start = 0
     end = -1
