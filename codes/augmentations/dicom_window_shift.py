@@ -6,6 +6,22 @@ import random
 from albumentations.core.transforms_interface import ImageOnlyTransform
 
 
+def min_max_normalize(img, mmin=None, mmax=None):
+    
+    if mmin == None:
+        mmin = img.min()
+    if mmax == None:
+        mmax = img.max()
+    
+    if mmin == mmax:
+            return np.zeros(img.shape, dtype=np.float32)
+    
+    img = (img - mmin)/(mmax-mmin)
+    return img
+
+
+
+
 def apply_window(image, center, width):
     image = image.copy()
 
@@ -18,7 +34,7 @@ def apply_window(image, center, width):
     return image
 
 
-def dicom_window_shift(img, windows, min_max_normalize=True, zipped=False):
+def dicom_window_shift(img, windows, min_max_norm=True, zipped=False):
     channels = len(windows)
     image = np.zeros((img.shape[0], img.shape[1], channels))
 
@@ -28,8 +44,8 @@ def dicom_window_shift(img, windows, min_max_normalize=True, zipped=False):
     for i in range(channels):
         ch = apply_window(img[:, :, i], windows[i][0], windows[i][1])
 
-        if min_max_normalize:
-            ch = ((ch - ch.min()) / (ch.max() - ch.min()))
+        if min_max_norm:
+            ch = min_max_normalize(ch)
         
         if zipped:
             ch = (ch*255).astype(np.uint8).astype(np.float32) / 255
