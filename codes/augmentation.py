@@ -1,6 +1,8 @@
 import albumentations as albu
 import cv2
 import numpy as np
+from .utils import hu_clip, get_mask
+
 
 def image_resize(image, size = 256, inter = cv2.INTER_AREA, **kwargs):
 
@@ -63,7 +65,7 @@ def random_erasing(x, p=0.5, sl=0.02, sh=0.4, r1=0.3, **kwargs):
 
 
 
-                            
+
 
 def training_intensity_augmentation():
         from .augmentations import DicomWindowShift
@@ -116,28 +118,3 @@ def get_validation_augmentation():
         ]
         return albu.Compose(test_transform, additional_targets={'image0': 'image', 'image1': 'image', 'image2': 'image', 'image3': 'image', 'image4': 'image'})
 
-
-def to_tensor(x, **kwargs):
-        return x.transpose(2, 0, 1).astype('float32')
-
-
-def get_preprocessing(preprocessing_fn):
-        """Construct preprocessing transform
-        
-        Args:
-                preprocessing_fn (callbale): data normalization function 
-                (can be specific for each pretrained neural network)
-        Return:
-                transform: albumentations.Compose
-        
-        """
-        
-        _transform = [
-                                    DicomWindowShift(window_width_mins=(1000),
-                                                                 window_width_maxs=(1000),
-                                                                 window_center_mins=(0),
-                                                                 window_center_maxs=(0),
-                                                                 min_max_normalize=False,
-                                                                 p=1.0)
-        ]
-        return albu.Compose(_transform)
