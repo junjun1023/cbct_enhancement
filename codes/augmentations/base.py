@@ -79,3 +79,42 @@ def get_mask(img):
     mask = find_mask(img, False)
     mask = grow_mask_outward(mask)
     return mask
+
+
+
+def refine_mask(bone_x, bone_y):
+
+    bone_x = bone_x.copy()
+    bone_y = bone_y.copy()
+    
+    bone_x = (bone_x * 255).astype(np.uint8)
+    bone_y = (bone_y * 255).astype(np.uint8)
+    
+    kernel = np.ones((9, 9), np.uint8)
+    dilate_x = cv2.dilate(bone_x, kernel, iterations = 1)
+    dilate_y = cv2.dilate(bone_y, kernel, iterations = 1)
+    
+    cnts, hier = cv2.findContours(dilate_x.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    height, width = dilate_y.shape
+    
+    comps = []
+    for cnt in cnts:
+        empty = np.zeros((height, width, 3), dtype=np.uint8)
+        cv2.drawContours(empty, [cnt], 0, (255, 255, 255), -1)
+        empty = empty.astype(np.float32) / 255
+        empty = empty[:, :, 0]
+        empty_y = dilate_y * empty
+
+        iou = IoU()(torch.from_numpy(empty_y), torch.from_numpy(empty))
+
+        if iou > 0.01:
+            comps += [empty]
+        else:
+            pass
+
+    comps = np.stack(comps, axis=-1)
+    comps = comps.max(-1)
+    processed = bone_x * comps
+
+    return processed
+    
