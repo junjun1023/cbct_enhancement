@@ -33,9 +33,7 @@ def min_max_normalize(img, mmax=None, mmin=None):
         mmin = img.min()
     if mmax == None:
         mmax = img.max()
-    
-#     assert img.min() >= mmin && img.max() <= mmax, "Image values is out of assigned range"
-    
+
     if mmin == mmax:
         if isinstance(img, np.ndarray):
             return np.zeros(img.shape, dtype=np.float32)
@@ -49,7 +47,8 @@ def min_max_normalize(img, mmax=None, mmin=None):
 def find_mask(img, plot=False):
     
     assert len(img.shape) == 2, "Only gray scale image is acceptable"
- 
+     
+    img = img.copy()
     if np.max(img) <= 1:
         img = (img * 255).astype(np.uint8)
     
@@ -89,13 +88,6 @@ def get_mask(img):
     return mask
 
 
-def read_npy(path):
-    g = glob.glob(os.path.join(path, "*.npy"))
-    slices = [np.load(s) for s in g]
-    slices.sort()
-    return slices
-
-
 
 def read_dicom(path):
     g = glob.glob(os.path.join(path, '*.dcm'))
@@ -105,25 +97,27 @@ def read_dicom(path):
 
 
 def hu_clip_tensor(scan, upper, lower, min_max_norm=True):
-    scan = torch.where(scan < lower, lower, scan)
-    scan = torch.where(scan > upper, upper, scan)
+    img = scan.detach().clone()
+    img = torch.where(img < lower, lower, img)
+    img = torch.where(img > upper, upper, img)
     if min_max_norm:
-        scan = min_max_normalize(scan, upper, lower)
+        img = min_max_normalize(img, upper, lower)
         
-    return scan
+    return img
 
 
 def hu_clip(scan, upper, lower, min_max_norm=True, zipped=False):
-    scan = np.where(scan < lower, lower, scan)
-    scan = np.where(scan > upper, upper, scan)
+    img = scan.copy()
+    img = np.where(img < lower, lower, img)
+    img = np.where(img > upper, upper, img)
 
     if min_max_norm:
-        scan = min_max_normalize(scan, upper, lower)
+        img = min_max_normalize(img, upper, lower)
     
     if zipped:
-        scan = (scan*255).astype(np.uint8).astype(np.float32) / 255
+        img = (img*255).astype(np.uint8).astype(np.float32) / 255
         
-    return scan
+    return img
 
 
 def hu_window(scan, window_level=40, window_width=80, min_max_norm=True):
@@ -142,34 +136,13 @@ def hu_window(scan, window_level=40, window_width=80, min_max_norm=True):
 def show_raw_pixel(slices):
     #讀出像素值並且儲存成numpy的格式
     image = hu_window(slices, window_level=0, window_width=1000,  show_hist=False)
-#     plt.figure(figsize = (12,12))
     plt.imshow(image, cmap=plt.cm.gray)
     plt.show()
     
     
-
-def valid_slices(cbcts, cts, empty_val=0)
-    found_start = False
-    start = 0
-    end = -1
-    
-    # iterate through cbct slices, and find which regions aren't all black (-1000)
-    for idx, sli in enumerate(cbcts):
-        image = sli
-        
-        if not found_start and len(np.unique(image))!=1:
-            start = idx
-            found_start = True
-                                   
-        elif found_start and len(np.unique(image)) == 1:
-            end = idx
-            break
-        
-    return start, end
-
     
 # return  a region where cbct images aren't all black
-def valid_slices_dicom(cbcts, cts):
+def valid_slices(cbcts, cts):
     found_start = False
     start = 0
     end = -1
@@ -187,4 +160,3 @@ def valid_slices_dicom(cbcts, cts):
             break
         
     return start, end
-                                   
