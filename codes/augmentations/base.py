@@ -1,0 +1,81 @@
+import numpy as np
+import cv2
+
+def bounded(img, bound):
+    if img.min() < bound[0] or img.max() > bound[1]:
+        return False
+    return True
+
+
+def min_max_normalize(img, mmax=None, mmin=None):
+    if mmin == None:
+        mmin = img.min()
+    if mmax == None:
+        mmax = img.max()
+
+    if mmin == mmax:
+        return np.zeros(img.shape, dtype=np.float32)
+
+    img = (img - mmin)/(mmax-mmin)
+    return img
+
+
+
+def hu_clip(scan, upper, lower, min_max_norm=True, zipped=False):
+    img = scan.copy()
+    img = np.where(img < lower, lower, img)
+    img = np.where(img > upper, upper, img)
+
+    if min_max_norm:
+        img = min_max_normalize(img, upper, lower)
+    
+    if zipped:
+        img = (img*255).astype(np.uint8).astype(np.float32) / 255
+        
+    return img
+
+
+
+def find_mask(img, plot=False):
+    
+    assert len(img.shape) == 2, "Only gray scale image is acceptable"
+     
+    img = img.copy()
+    if np.max(img) <= 1:
+        img = (img * 255).astype(np.uint8)
+    
+    img[img != 0] = 255
+    
+    cnts, hier = cv2.findContours(img.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    c = max(cnts, key = cv2.contourArea)
+
+    if plot:
+        img = np.zeros((img.shape[0], img.shape[1], 3), dtype=np.uint8)
+        cv2.drawContours(img, [c], 0, (255, 255, 255), 3)
+        plt.figure(0, figsize=(6,6))
+        plt.imshow(img)
+        plt.show()
+        
+    img = np.zeros((img.shape[0], img.shape[1], 3), dtype=np.uint8)
+    cv2.drawContours(img, [c], 0, (255, 255, 255), -1)
+    img = img[:, :, 0].astype(np.float32) / 255
+    
+    return img
+
+
+
+def grow_mask_outward(img, kernel=(5, 5), iterations = 1):
+    # https://stackoverflow.com/questions/55948254/scale-contours-up-grow-outward
+    kernel = np.ones(kernel, np.uint8)
+    img = cv2.dilate(img, kernel, iterations = iterations)
+    img = find_mask(img, False)
+    return img
+
+    
+
+def get_mask(img):
+    if np.max(img) == 0:
+        return np.zeros(img.shape, dtype=np.float32)
+    mask = find_mask(img, False)
+    mask = grow_mask_outward(mask)
+    return mask

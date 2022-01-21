@@ -31,7 +31,7 @@ def apply_window(image, center, width):
     image[image < min_value] = min_value
     image[image > max_value] = max_value
 
-    return image
+    return image, max_value, min_value
 
 
 def dicom_window_shift(img, windows, min_max_norm=True, zipped=False):
@@ -42,10 +42,10 @@ def dicom_window_shift(img, windows, min_max_norm=True, zipped=False):
         img = np.repeat(img[:, :, np.newaxis], channels, axis=2)
 
     for i in range(channels):
-        ch = apply_window(img[:, :, i], windows[i][0], windows[i][1])
+        ch, max_val, min_val = apply_window(img[:, :, i], windows[i][0], windows[i][1])
 
         if min_max_norm:
-            ch = min_max_normalize(ch)
+            ch = min_max_normalize(ch, max_val, min_val)
         
         if zipped:
             ch = (ch*255).astype(np.uint8).astype(np.float32) / 255
