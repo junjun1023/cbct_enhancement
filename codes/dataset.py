@@ -8,6 +8,7 @@ import torch
 from torch.utils.data import Dataset as BaseDataset
 
 from .utils import hu_clip, read_dicom, valid_slices
+from .augmentations.base import refine_mask
 from .augmentations.mask import get_mask
 from .augmentations.air_bone_mask import get_air_bone_mask
 
@@ -60,21 +61,21 @@ class Dataset(BaseDataset):
         air_x, bone_x = sample[0, :, :], sample[1, :, :]
         sample = get_air_bone_mask()(image=y)["image"]
         air_y, bone_y = sample[0, :, :], sample[1, :, :]
-            
+        
+        bone = refine_mask(bone_x, bone_y)
+        
             
         if self.geometry_aug:
-            sample = self.geometry_aug(image=x, image0=y, image1=air_x, image2=air_y, image3=bone_x, image4=bone_y)
-            x, y, air_x, air_y, bone_x, bone_y = sample["image"], sample["image0"], sample["image1"], sample["image2"], sample["image3"], sample["image4"]
+            sample = self.geometry_aug(image=x, image0=y, image1=air_x, image3=bone)
+            x, y, air_x, bone = sample["image"], sample["image0"], sample["image1"], sample["image2"]
             
             
         x = np.expand_dims(x, 0).astype(np.float32)
         y = np.expand_dims(y, 0).astype(np.float32)
         air_x = np.expand_dims(air_x, 0).astype(np.float32)
-        air_y = np.expand_dims(air_y, 0).astype(np.float32)
-        bone_x = np.expand_dims(bone_x, 0).astype(np.float32)
-        bone_y = np.expand_dims(bone_y, 0).astype(np.float32)      
+        bone = np.expand_dims(bone, 0).astype(np.float32)
 
-        return x, y, air_x, air_y, bone_x, bone_y
+        return x, y, air_x, bone
     
         
     def __len__(self):
