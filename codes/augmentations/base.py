@@ -1,5 +1,7 @@
 import numpy as np
 import cv2
+import torch
+from segmentation_models_pytorch.utils.metrics import IoU
 
 def bounded(img, bound):
     if img.min() < bound[0] or img.max() > bound[1]:
@@ -115,6 +117,7 @@ def refine_mask(bone_x, bone_y):
     comps = np.stack(comps, axis=-1)
     comps = comps.max(-1)
     processed = bone_x * comps
+    processed = processed.astype(np.float32) / 255
 
     return processed
     

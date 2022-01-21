@@ -66,7 +66,7 @@ class Dataset(BaseDataset):
         
             
         if self.geometry_aug:
-            sample = self.geometry_aug(image=x, image0=y, image1=air_x, image3=bone)
+            sample = self.geometry_aug(image=x, image0=y, image1=air_x, image2=bone)
             x, y, air_x, bone = sample["image"], sample["image0"], sample["image1"], sample["image2"]
             
             
