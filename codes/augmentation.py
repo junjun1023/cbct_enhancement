@@ -70,15 +70,16 @@ def random_erasing(x, p=0.5, sl=0.02, sh=0.4, r1=0.3, **kwargs):
 def training_intensity_augmentation():
         from .augmentations import DicomWindowShift
         img_transform = [
-                    DicomWindowShift(window_width_mins=(1000, ),
-                                                                 window_width_maxs=(1000, ),
-                                                                 window_center_mins=(0, ),
-                                                                 window_center_maxs=(0, ),
-                                                                 min_max_norm=False,
-                                                                 zipped=False,
-                                                                 p=1.0)
+                    albu.CoarseDropout(max_holes=4, 
+                                       max_height=40, 
+                                       max_width=40, 
+                                       min_holes=1, 
+                                       min_height=5, 
+                                       min_width=5, 
+                                       fill_value=0, 
+                                       mask_fill_value=0, p=0.5),
         ]
-        return albu.Compose(img_transform, additional_targets={'image0': 'image'})
+        return albu.Compose(img_transform, additional_targets={'image0': 'image', 'image1':  'image'})
 
 
 def validation_intensity_augmentation():
@@ -92,7 +93,7 @@ def validation_intensity_augmentation():
                                                                  zipped=False,
                                                                  p=1.0)
         ]
-        return albu.Compose(img_transform, additional_targets={'image0': 'image'})
+        return albu.Compose(img_transform, additional_targets={'image0': 'image', 'image1':  'image'})
     
 
 
@@ -100,6 +101,7 @@ def get_training_augmentation():
         train_transform = [
                 # ref: https://github.com/albumentations-team/albumentations/issues/640
                 albu.CenterCrop(height=384, width=384, always_apply=True),
+                albu.HorizontalFlip(),
                 albu.ShiftScaleRotate(scale_limit=0.1, rotate_limit=0, shift_limit=0.1, p=0.5, border_mode=0),
                 albu.LongestMaxSize(max_size=384, interpolation=cv2.INTER_LINEAR_EXACT, always_apply=True),
                 albu.PadIfNeeded(min_height=384, min_width=384, always_apply=True, border_mode=0),
