@@ -2,6 +2,8 @@ import numpy as np
 
 import torch
 import torch.nn as nn
+from .utils import find_mask
+from segmentation_models_pytorch.utils.metrics import Fscore, IoU
 
 class PSNR:
     """Peak Signal to Noise Ratio
@@ -37,3 +39,34 @@ class SNR:
         lower = torch.sum(torch.pow(gt - pr, 2))
         
         return 10 * torch.log10(upper / lower)
+    
+    
+    
+class ContourEval:
+    def __init__(self):
+        self.name = "ContourEval"
+    
+    @staticmethod
+    def __call__(pr, gt, cnt_width=1, mode="dice"):
+        
+        if isinstance(pr, torch.Tensor):
+            pr = pr.cpu().numpy()
+        if isinstance(gt, torch.Tensor):
+            gt = gt.cpu().numpy()
+        
+        pr_cnt = find_mask(pr, cnt_width, False)
+        gt_cnt = find_mask(gt, cnt_width, False)
+        
+        score = None
+        if mode == "dice":
+            score = Fscore()(torch.from_numpy(pr_cnt).float(), torch.from_numpy(gt_cnt).float())
+        elif mode == "iou":
+            score = IoU()(torch.from_numpy(pr_cnt).float(), torch.from_numpy(gt_cnt).float())
+        else:
+            assert 0, "Unknown evaluation. Need to eval with Fscore or IoU"
+        
+        return score
+            
+            
+        
+    
