@@ -12,7 +12,7 @@ def air_bone_mask(img, **kwargs):
         """
         x_min = -500
         x_max = 500
-        air_window = (-500, -499)
+        air_window = (-257, -256)
         bone_window = (255, 256)
         
         upper = ((air_window[1]) - (x_min))/(x_max-(x_min))
