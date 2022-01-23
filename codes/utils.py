@@ -44,9 +44,11 @@ def min_max_normalize(img, mmax=None, mmin=None):
     return img
 
 
-def find_mask(img, plot=False):
+def find_mask(img, width=1, plot=False):
     
-    assert len(img.shape) == 2, "Only gray scale image is acceptable"
+    if isinstance(img, torch.Tensor):
+        img = img.cpu().numpy()
+    assert len(img.shape) == 2, "Supportive for 2-dims only"
      
     img = img.copy()
     if np.max(img) <= 1:
@@ -65,17 +67,18 @@ def find_mask(img, plot=False):
         plt.show()
         
     img = np.zeros((img.shape[0], img.shape[1], 3), dtype=np.uint8)
-    cv2.drawContours(img, [c], 0, (255, 255, 255), -1)
+    cv2.drawContours(img, [c], 0, (255, 255, 255), width)
     img = img[:, :, 0].astype(np.float32) / 255
     
     return img
     
 
+    
 def grow_mask_outward(img, kernel=(5, 5), iterations = 1):
     # https://stackoverflow.com/questions/55948254/scale-contours-up-grow-outward
     kernel = np.ones(kernel, np.uint8)
     img = cv2.dilate(img, kernel, iterations = iterations)
-    img = find_mask(img, False)
+    img = find_mask(img, -1, False)
     return img
     
     
@@ -83,10 +86,9 @@ def grow_mask_outward(img, kernel=(5, 5), iterations = 1):
 def get_mask(img):
     if np.max(img) == 0:
         return np.zeros(img.shape, dtype=np.float32)
-    mask = find_mask(img, False)
+    mask = find_mask(img, -1, False)
     mask = grow_mask_outward(mask)
     return mask
-
 
 
 def read_dicom(path):
@@ -142,7 +144,7 @@ def show_raw_pixel(slices):
     
     
 # return  a region where cbct images aren't all black
-def valid_slices(cbcts, cts):
+def valid_slices(cbcts):
     found_start = False
     start = 0
     end = -1
