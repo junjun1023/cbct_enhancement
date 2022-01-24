@@ -78,15 +78,22 @@ class Dataset(BaseDataset):
         x4 = x4 * mask_x
         y4 = y4 * mask_y       
         
+        
         if self.intensity_aug:
             sample = self.intensity_aug(image=x, image0=y)
             x = np.squeeze(sample["image"])
             y = np.squeeze(sample["image0"])
-            
+        
+#         print(x.min(), x.max(), len(np.unique(x)))
+#         print(y.min(), y.max(), len(np.unique(y)))
+        
         x_min = abs(x.min())
         y_min = abs(y.min())
         x = (x + x_min) * mask_x - x_min
         y = (y + y_min) * mask_y - y_min
+        
+#         print(x.min(), x.max(), len(np.unique(x)))
+#         print(y.min(), y.max(), len(np.unique(y)))        
         
         upper = ((-256) - (-500))/(500-(-500))
         lower = ((-257) - (-500))/(500-(-500))
