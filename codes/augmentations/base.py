@@ -23,8 +23,8 @@ def min_max_normalize(img, mmax=None, mmin=None):
 
 
 
-def hu_clip(scan, upper, lower, min_max_norm=True, zipped=False):
-    img = scan.copy()
+def hu_clip(img, upper, lower, min_max_norm=True, zipped=False):
+
     img = np.where(img < lower, lower, img)
     img = np.where(img > upper, upper, img)
 
