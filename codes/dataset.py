@@ -49,20 +49,36 @@ class Dataset(BaseDataset):
         # read img
         x = self.xs[i].pixel_array.copy()
         y = self.ys[i].pixel_array.copy()
-
+        
+        
+        print("before get mask: ", x.min(), x.max(), len(np.unique(x)))
+        print("before get mask: ", y.min(), y.max(), len(np.unique(y)))
+        
         mask_x = get_mask()(image=x)["image"]
         mask_y = get_mask()(image=y)["image"]
  
+        print("before get mask: ", x.min(), x.max(), len(np.unique(x)))
+        print("before get mask: ", y.min(), y.max(), len(np.unique(y)))
+
         x = hu_clip(x, 500, -500, True)
         y = hu_clip(y, 500, -500, True)
+        
+        print(x.min(), x.max(), len(np.unique(x)))
+        print(y.min(), y.max(), len(np.unique(y)))
 
         x = x * mask_x
         y = y * mask_y
+        
+        print(x.min(), x.max(), len(np.unique(x)))
+        print(y.min(), y.max(), len(np.unique(y)))
 
         sample = get_air_bone_mask()(image=x)["image"]
         air_x, bone_x = sample[0, :, :], sample[1, :, :]
         sample = get_air_bone_mask()(image=y)["image"]
         air_y, bone_y = sample[0, :, :], sample[1, :, :]
+        
+        print(air_x.min(), air_x.max(), len(np.unique(air_x)))
+        print(bone_x.min(), bone_x.max(), len(np.unique(bone_x)))
         
         bone = refine_mask(bone_x, bone_y)
         
