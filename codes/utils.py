@@ -38,7 +38,7 @@ def min_max_normalize(img, mmax=None, mmin=None):
         if isinstance(img, np.ndarray):
             return np.zeros(img.shape, dtype=np.float32)
         elif isinstance(img, torch.Tensor):
-            return torch.zeros(img.size(), dtype=torch.float, device=img.device)
+            return torch.where(img > 0, 0)
 
     img = (img - mmin)/(mmax-mmin)
     return img
@@ -98,8 +98,7 @@ def read_dicom(path):
     return slices
 
 
-def hu_clip_tensor(scan, upper, lower, min_max_norm=True):
-    img = scan.detach().clone()
+def hu_clip_tensor(img, upper, lower, min_max_norm=True):
     img = torch.where(img < lower, lower, img)
     img = torch.where(img > upper, upper, img)
     if min_max_norm:
@@ -108,8 +107,7 @@ def hu_clip_tensor(scan, upper, lower, min_max_norm=True):
     return img
 
 
-def hu_clip(scan, upper, lower, min_max_norm=True, zipped=False):
-    img = scan.copy()
+def hu_clip(img, upper, lower, min_max_norm=True, zipped=False):
     img = np.where(img < lower, lower, img)
     img = np.where(img > upper, upper, img)
 
