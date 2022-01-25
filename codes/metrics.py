@@ -50,9 +50,9 @@ class ContourEval:
     def __call__(pr, gt, cnt_width=1, mode="dice"):
         
         if isinstance(pr, torch.Tensor):
-            pr = pr.cpu().numpy()
+            pr = pr.squeeze().cpu().numpy()
         if isinstance(gt, torch.Tensor):
-            gt = gt.cpu().numpy()
+            gt = gt.squeeze().cpu().numpy()
         
         pr_cnt = find_mask(pr, cnt_width, False)
         gt_cnt = find_mask(gt, cnt_width, False)
