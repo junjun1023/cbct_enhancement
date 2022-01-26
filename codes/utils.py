@@ -27,20 +27,21 @@ def bounded(img, bound):
     return True
 
 
-def min_max_normalize(img, mmax=None, mmin=None):
+def min_max_normalize(img, sourceBound=None, targetBound=None):
     
-    if mmin == None:
-        mmin = img.min()
-    if mmax == None:
-        mmax = img.max()
+    if sourceBound == None:
+        sourceBound = (img.min(), img.max())
 
-    if mmin == mmax:
+    if sourceBound[0] == sourceBound[1]:
         if isinstance(img, np.ndarray):
             return np.zeros(img.shape, dtype=np.float32)
         elif isinstance(img, torch.Tensor):
             return torch.where(img > 0, 0)
 
-    img = (img - mmin)/(mmax-mmin)
+    img = (img - sourceBound[0])/(sourceBound[1] - sourceBound[0])
+    if targetBound:
+        img = img * (targetBound[1] - targetBound[0]) + targetBound[0]
+
     return img
 
 
@@ -98,21 +99,25 @@ def read_dicom(path):
     return slices
 
 
-def hu_clip_tensor(img, upper, lower, min_max_norm=True):
+def hu_clip_tensor(img, sourceBound, targetBound=None, min_max_norm=True):
+    lower = sourceBound[0]
+    upper = sourceBound[1]
     img = torch.where(img < lower, lower, img)
     img = torch.where(img > upper, upper, img)
     if min_max_norm:
-        img = min_max_normalize(img, upper, lower)
+        img = min_max_normalize(img, sourceBound, targetBound)
         
     return img
 
 
-def hu_clip(img, upper, lower, min_max_norm=True, zipped=False):
+def hu_clip(img, sourceBound, targetBound=None, min_max_norm=True, zipped=False):
+    lower = sourceBound[0]
+    upper = sourceBound[1]
     img = np.where(img < lower, lower, img)
     img = np.where(img > upper, upper, img)
 
     if min_max_norm:
-        img = min_max_normalize(img, upper, lower)
+        img = min_max_normalize(img, sourceBound, targetBound)
     
     if zipped:
         img = (img*255).astype(np.uint8).astype(np.float32) / 255
@@ -128,7 +133,7 @@ def hu_window(scan, window_level=40, window_width=80, min_max_norm=True):
     scan = np.where(scan > window[1], window[1], scan)
     
     if min_max_norm:
-        scan = min_max_normalize(scan, upper, lower)
+        scan = min_max_normalize(scan,(upper, lower))
 
     return scan
 
