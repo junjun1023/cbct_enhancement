@@ -54,6 +54,6 @@ class PerceptualLoss:
         x = self.extractor(x)["features_23"]
         y = self.extractor(y)["features_23"]
 
-        return nn.MSELoss()(x, y)
+        return nn.L1Loss()(x, y)
         
         
