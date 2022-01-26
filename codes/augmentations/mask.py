@@ -12,7 +12,7 @@ def _mask(img, **kwargs):
     need origin dicom image
     """
     window = (-512, -257)
-    img = base.hu_clip(img, window[1], window[0], True)
+    img = base.hu_clip(img, (window[0], window[1]), None, True)
     img = base.get_mask(img)
     return img
 

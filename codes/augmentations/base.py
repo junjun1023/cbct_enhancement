@@ -9,33 +9,38 @@ def bounded(img, bound):
     return True
 
 
-def min_max_normalize(img, mmax=None, mmin=None):
-    if mmin == None:
-        mmin = img.min()
-    if mmax == None:
-        mmax = img.max()
+def min_max_normalize(img, sourceBound=None, targetBound=None):
+    
+    if sourceBound == None:
+        sourceBound = (img.min(), img.max())
 
-    if mmin == mmax:
-        return np.zeros(img.shape, dtype=np.float32)
+    if sourceBound[0] == sourceBound[1]:
+        if isinstance(img, np.ndarray):
+            return np.zeros(img.shape, dtype=np.float32)
+        elif isinstance(img, torch.Tensor):
+            return torch.where(img > 0, 0)
 
-    img = (img - mmin)/(mmax-mmin)
+    img = (img - sourceBound[0])/(sourceBound[1] - sourceBound[0])
+    if targetBound:
+        img = img * (targetBound[1] - targetBound[0]) + targetBound[0]
+
     return img
 
 
 
-def hu_clip(scan, upper, lower, min_max_norm=True, zipped=False):
-    img = scan.copy()
+def hu_clip(img, sourceBound, targetBound=None, min_max_norm=True, zipped=False):
+    lower = sourceBound[0]
+    upper = sourceBound[1]
     img = np.where(img < lower, lower, img)
     img = np.where(img > upper, upper, img)
 
     if min_max_norm:
-        img = min_max_normalize(img, upper, lower)
+        img = min_max_normalize(img, sourceBound, targetBound)
     
     if zipped:
         img = (img*255).astype(np.uint8).astype(np.float32) / 255
         
     return img
-
 
 
 def find_mask(img, plot=False):
