@@ -23,7 +23,7 @@ class Dataset(BaseDataset):
         preprocessing (albumentations.Compose): data preprocessing 
             (e.g. noralization, shape manipulation, etc.)
     """
-    def __init__(self, path, intensity_aug=None, geometry_aug=None):
+    def __init__(self, path, intensity_aug=None, geometry_aug=None, mode="both"):
         paths = sorted(glob.glob(path))
         self.xs = []
         self.ys = []
@@ -38,7 +38,8 @@ class Dataset(BaseDataset):
             self.xs = self.xs + cbct_slices[region[0] + 3: region[1] - 3]
             self.ys = self.ys + ct_slices[region[0] + 3: region[1] - 3]
             
-
+        
+        self.mode = mode
         self.intensity_aug = intensity_aug
         self.geometry_aug = geometry_aug
 
@@ -53,8 +54,8 @@ class Dataset(BaseDataset):
         mask_x = get_mask()(image=x)["image"]
         mask_y = get_mask()(image=y)["image"]
  
-        x = hu_clip(x, 500, -500, True)
-        y = hu_clip(y, 500, -500, True)
+        x = hu_clip(x, (-500, 500), None, True)
+        y = hu_clip(y, (-500, 500), None, True)
 
         x = x * mask_x
         y = y * mask_y
@@ -65,21 +66,30 @@ class Dataset(BaseDataset):
         air_y, bone_y = sample[0, :, :], sample[1, :, :]
         
         bone = refine_mask(bone_x, bone_y)
+
         
-            
         if self.geometry_aug:
-            sample = self.geometry_aug(image=x, image0=y, image1=air_x, image2=bone)
-            x, y, air_x, bone = sample["image"], sample["image0"], sample["image1"], sample["image2"]
+            sample = self.geometry_aug(image=x, image0=y, image1=air_x, image2=bone, image3=air_y, image4=bone_y)
+            x, y, air_x, bone, air_y, bone_y= sample["image"], sample["image0"], sample["image1"], sample["image2"], sample["image3"], sample["image4"]
             
         if self.intensity_aug:
-            sample = self.intensity_aug(image=x, image0=air_x, image1=bone)
-            x, air_x, bone = sample["image"], sample["image0"], sample["image1"]
+            sample = self.intensity_aug(image=x, image0=y, image1=air_x, image2=bone, image3=air_y, image4=bone_y)
+            x, y, air_x, bone, air_y, bone_y= sample["image"], sample["image0"], sample["image1"], sample["image2"], sample["image3"], sample["image4"]
             
-            
+
         x = np.expand_dims(x, 0).astype(np.float32)
         y = np.expand_dims(y, 0).astype(np.float32)
         air_x = np.expand_dims(air_x, 0).astype(np.float32)
         bone = np.expand_dims(bone, 0).astype(np.float32)
+        air_y = np.expand_dims(air_y, 0).astype(np.float32)
+        bone_y = np.expand_dims(bone_y, 0).astype(np.float32)
+        
+        if self.mode == "cbct":
+            return x, air_x, bone
+        elif self.mode == "ct":
+            return y, air_y, bone_y
+        elif self.mode == "both":
+            return x, y, air_x, bone, air_y, bone_y
 
         return x, y, air_x, bone
     
