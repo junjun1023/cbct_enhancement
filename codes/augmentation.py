@@ -79,7 +79,7 @@ def training_intensity_augmentation():
                                        fill_value=0, 
                                        mask_fill_value=0, p=0.5),
         ]
-        return albu.Compose(img_transform, additional_targets={'image0': 'image', 'image1':  'image'})
+        return albu.Compose(img_transform, additional_targets={'image0': 'image', 'image1': 'image', 'image2': 'image', 'image3': 'image', 'image4': 'image'})
 
 
 def validation_intensity_augmentation():
@@ -93,7 +93,7 @@ def validation_intensity_augmentation():
                                                                  zipped=False,
                                                                  p=1.0)
         ]
-        return albu.Compose(img_transform, additional_targets={'image0': 'image', 'image1':  'image'})
+        return albu.Compose(img_transform, additional_targets={'image0': 'image', 'image1': 'image', 'image2': 'image', 'image3': 'image', 'image4': 'image'})
     
 
 
