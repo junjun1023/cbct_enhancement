@@ -20,3 +20,4 @@ def Optimizer(params, name, **kwargs):
         else:
                 raise ValueError('Optimizer should be callable/adam/sgd; got {}'.format(name))
 
+                
