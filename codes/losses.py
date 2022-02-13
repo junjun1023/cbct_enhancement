@@ -5,7 +5,7 @@ import torch.nn.functional as F
 
 from pytorch_msssim import ssim
 from .extractor import Extractor
-import copy
+from .activation import Activation
 
 
 class SSIMLoss:
@@ -27,7 +27,6 @@ class MAELoss(nn.L1Loss):
         
 class PerceptualLoss:
 
-    
     def __init__(self, feature_list=["features_23"], normalize=True):
         self.__name__ = "PerceptualLoss"
         self.extractor = Extractor(None, feature_list)
@@ -57,3 +56,36 @@ class PerceptualLoss:
         return nn.L1Loss()(x, y)
         
         
+class MultiScaleHeads(nn.Module):
+    
+    class Flatten(nn.Module):
+        def forward(self, x):
+            return torch.flatten(x, start_dim=1)
+    
+    def __init__(self, n_classes=1, channels=(64, 128, 256, 512, 1024), activation=None):
+        
+        super(MultiScaleHeads, self).__init__()
+        self.channels = channels
+        
+        modules = []
+        for channel in channels:
+            seq = [
+                nn.AdaptiveAvgPool2d(1),
+                self.Flatten(),
+                nn.Linear(in_features=channel, out_features=n_classes),
+            ]
+            module = nn.Sequential(*seq)
+            modules += [module]
+            
+        self.classifiers = nn.ModuleList(modules)
+        self.act = Activation(name=activation)
+        
+    def forward(self, x):
+        
+        ret = []
+        for feat, classifier in zip(x, self.classifiers):
+            f = classifier(feat)
+            f = self.act(f)
+            ret += [f]
+            
+        return ret
