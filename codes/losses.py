@@ -89,3 +89,39 @@ class MultiScaleHeads(nn.Module):
             ret += [f]
             
         return ret
+    
+    
+    
+class MultiScalePatchHeads(nn.Module):
+    
+    class Flatten(nn.Module):
+        def forward(self, x):
+            return torch.flatten(x, start_dim=1)
+        
+    def __init__(self, n_classes=1, channels=(64, 128, 256, 512, 1024), activation=None):
+        
+        super(MultiScalePatchHeads, self).__init__()
+        self.channels = channels
+        
+        modules = []
+        for channel in channels:
+            seq = [
+                nn.Conv2d(channel, n_classes, kernel_size=1)
+            ]
+            module = nn.Sequential(*seq)
+            modules += [module]
+            
+        self.classifiers = nn.ModuleList(modules)
+        self.act = Activation(name=activation)
+        
+    def forward(self, x):
+        
+        ret = []
+        for feat, classifier in zip(x, self.classifiers):
+            f = classifier(feat)
+            f = self.act(f)
+            ret += [f]
+            
+        return ret
+    
+    
