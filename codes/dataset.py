@@ -61,37 +61,47 @@ class Dataset(BaseDataset):
         y = y * mask_y
 
         sample = get_air_bone_mask()(image=x)["image"]
-        air_x, bone_x = sample[0, :, :], sample[1, :, :]
+        air_x, bone_x, tissue_x = sample[0, :, :], sample[1, :, :], sample[2, :, :]
         sample = get_air_bone_mask()(image=y)["image"]
-        air_y, bone_y = sample[0, :, :], sample[1, :, :]
+        air_y, bone_y, tissue_y = sample[0, :, :], sample[1, :, :], sample[2, :, :]
         
-        bone = refine_mask(bone_x, bone_y)
+        bone_x = refine_mask(bone_x, bone_y)
 
         
         if self.geometry_aug:
-            sample = self.geometry_aug(image=x, image0=y, image1=air_x, image2=bone, image3=air_y, image4=bone_y)
-            x, y, air_x, bone, air_y, bone_y= sample["image"], sample["image0"], sample["image1"], sample["image2"], sample["image3"], sample["image4"]
+            sample = self.geometry_aug(image=x, image0=y, image1=air_x, image2=bone_x, image3=air_y, image4=bone_y, image5=tissue_x, image6=tissue_y)
+            x, y, air_x, bone_x, air_y, bone_y, tissue_x, tissue_y = sample["image"], sample["image0"], \
+                                                                                                                        sample["image1"], sample["image2"], \
+                                                                                                                        sample["image3"], sample["image4"], \
+                                                                                                                        sample["image5"], sample["image6"]
             
         if self.intensity_aug:
-            sample = self.intensity_aug(image=x, image0=y, image1=air_x, image2=bone, image3=air_y, image4=bone_y)
-            x, y, air_x, bone, air_y, bone_y= sample["image"], sample["image0"], sample["image1"], sample["image2"], sample["image3"], sample["image4"]
+            sample = self.intensity_aug(image=x, image0=y, image1=air_x, image2=bone_x, image3=air_y, image4=bone_y, image5=tissue_x, image6=tissue_y)
+            x, y, air_x, bone_x, air_y, bone_y, tissue_x, tissue_y = sample["image"], sample["image0"], \
+                                                                                                                        sample["image1"], sample["image2"], \
+                                                                                                                        sample["image3"], sample["image4"], \
+                                                                                                                        sample["image5"], sample["image6"]
             
 
         x = np.expand_dims(x, 0).astype(np.float32)
         y = np.expand_dims(y, 0).astype(np.float32)
         air_x = np.expand_dims(air_x, 0).astype(np.float32)
-        bone = np.expand_dims(bone, 0).astype(np.float32)
+        bone_x = np.expand_dims(bone_x, 0).astype(np.float32)
         air_y = np.expand_dims(air_y, 0).astype(np.float32)
         bone_y = np.expand_dims(bone_y, 0).astype(np.float32)
+        tissue_x = np.expand_dims(tissue_x, 0).astype(np.float32)
+        tissue_y = np.expand_dims(tissue_y, 0).astype(np.float32)   
         
         if self.mode == "cbct":
-            return x, air_x, bone
+            return x, air_x, bone_x, tissue_x
         elif self.mode == "ct":
-            return y, air_y, bone_y
+            return y, air_y, bone_y, tissue_y
+        elif self.mode == "unpaired":
+            return x, y, air_x, bone_x, tissue_x
         elif self.mode == "both":
-            return x, y, air_x, bone, air_y, bone_y
+            return x, y, air_x, bone_x, tissue_x, air_y, bone_y, tissue_y
 
-        return x, y, air_x, bone
+        return x, y, air_x, bone_x, tissue_x, air_y, bone_y, tissue_y
     
         
     def __len__(self):
