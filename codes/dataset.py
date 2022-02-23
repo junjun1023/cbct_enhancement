@@ -126,8 +126,8 @@ class DicomDataset(BaseDataset):
     def __init__(self, cbct_path, ct_path, ditch=3, intensity_aug=None, geometry_aug=None, identity=False):
 
         # read cbct and ct
-        assert cbct_path.split("_")[0] == ct_path.split("_")[0]         
-        self.patient_id = cbct_path.split("_")[0].split("/")[-1]
+        assert cbct_path.split("/")[-1].split("_")[0] == ct_path.split("/")[-1].split("_")[0]     
+        self.patient_id = cbct_path.split("/")[-1].split("_")[0] 
         
         cbct_slices = read_dicom(cbct_path)
         ct_slices = read_dicom(ct_path)
