@@ -22,13 +22,9 @@ def air_bone_mask(img, **kwargs):
         upper = ((bone_window[1]) - (x_min))/(x_max-(x_min))
         lower = ((bone_window[0]) - (x_min))/(x_max-(x_min))
         bone = base.hu_clip(img, (lower, upper), None, True)
+    
         
-        tissue_window = (-128, 127)
-        upper = ((tissue_window[1]) - (x_min))/(x_max-(x_min))
-        lower = ((tissue_window[0]) - (x_min))/(x_max-(x_min))
-        tissue = base.hu_clip(img, (lower, upper), None, True)        
-        
-        return np.stack((air, bone, tissue))
+        return np.stack((air, bone))
     
     
     
