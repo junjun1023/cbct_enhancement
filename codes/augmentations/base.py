@@ -119,6 +119,9 @@ def refine_mask(bone_x, bone_y):
         else:
             pass
 
+    if len(comps) == 0:
+        return bone_x.astype(np.float32)/255
+        
     comps = np.stack(comps, axis=-1)
     comps = comps.max(-1)
     processed = bone_x * comps
