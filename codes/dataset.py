@@ -26,7 +26,7 @@ class Dataset(BaseDataset):
         preprocessing (albumentations.Compose): data preprocessing 
             (e.g. noralization, shape manipulation, etc.)
     """
-    def __init__(self, path, intensity_aug=None, geometry_aug=None, identity=False, electron=False):
+    def __init__(self, path, intensity_aug=None, geometry_aug=None, identity=False, electron=False, position="pelvic"):
         paths = sorted(glob.glob(path))
         self.xs = []
         self.ys = []
@@ -41,10 +41,24 @@ class Dataset(BaseDataset):
             self.xs = self.xs + cbct_slices[region[0] + 3: region[1] - 3]
             self.ys = self.ys + ct_slices[region[0] + 3: region[1] - 3]
 
+        self.position = position
         self.identity = identity
         self.electron = electron
         self.intensity_aug = intensity_aug
         self.geometry_aug = geometry_aug
+        
+        self.x_norm = (0, 1)
+        self.y_norm = (0, 1)
+        if electron:
+            self.y_norm = (-1015.1, 1005.8)
+            if position == "pelvic" or position == "abdomen":
+                self.x_norm = (-1052.1, 1053.4)
+            elif position == "chest":
+                self.x_norm = (-1059.6, 1067.2)
+            elif position == "headneck":
+                self.x_norm = (-1068.8, 1073.5)
+            else:
+                assert False, "Position: pelvic, abdomen, chest, and headneck"
 
         
     
@@ -59,8 +73,8 @@ class Dataset(BaseDataset):
         ###########################  
         denoise_bound = (-512, -257)
         if self.electron:
-            y = (y + 1015.1)/1005.8
-            x = (x + 1052.1)/1053.4
+            y = (y - self.y_norm[0])/self.y_norm[1]
+            x = (x - self.x_norm[0])/self.x_norm[1]
             denoise_bound = (0.4, 0.5)
             
         mask_x = DenoiseMask(bound=denoise_bound, always_apply=True)(image=x)["image"]
@@ -136,7 +150,7 @@ class DicomDataset(BaseDataset):
         preprocessing (albumentations.Compose): data preprocessing 
             (e.g. noralization, shape manipulation, etc.)
     """
-    def __init__(self, cbct_path, ct_path, ditch=3, intensity_aug=None, geometry_aug=None, identity=False, electron=False):
+    def __init__(self, cbct_path, ct_path, ditch=3, intensity_aug=None, geometry_aug=None, identity=False, electron=False, position="pelvic"):
 
         # read cbct and ct
         assert cbct_path.split("/")[-1].split("_")[0] == ct_path.split("/")[-1].split("_")[0]     
@@ -156,7 +170,20 @@ class DicomDataset(BaseDataset):
         self.intensity_aug = intensity_aug
         self.geometry_aug = geometry_aug
 
-        
+        self.x_norm = (0, 1)
+        self.y_norm = (0, 1)
+        if electron:
+            self.y_norm = (-1015.1, 1005.8)
+            if position == "pelvic" or position == "abdomen":
+                self.x_norm = (-1052.1, 1053.4)
+            elif position == "chest":
+                self.x_norm = (-1059.6, 1067.2)
+            elif position == "headneck":
+                self.x_norm = (-1068.8, 1073.5)
+            else:
+                assert False, "Position: pelvic, abdomen, chest, and headneck"
+
+                
     def __getitem__(self, i):
 
         # read img
@@ -168,8 +195,8 @@ class DicomDataset(BaseDataset):
         ###########################  
         denoise_bound = (-512, -257)
         if self.electron:
-            y = (y + 1015.1)/1005.8
-            x = (x + 1052.1)/1053.4
+            y = (y - self.y_norm[0])/self.y_norm[1]
+            x = (x - self.x_norm[0])/self.x_norm[1]
             denoise_bound = (0.4, 0.5)
             
         mask_x = DenoiseMask(bound=denoise_bound, always_apply=True)(image=x)["image"]
@@ -241,13 +268,15 @@ class DicomDataset(BaseDataset):
     
     
 
-def DicomsDataset(path, geometry_aug=None, intensity_aug=None, identity=False, electron=False):
+def DicomsDataset(path, geometry_aug=None, intensity_aug=None, identity=False, electron=False, position="pelvic"):
         paths = sorted(glob.glob(path))
         
         datasets = []
         # read cbct and ct
         for i in range(0, len(paths), 2):
-            scans = DicomDataset(cbct_path=paths[i+1], ct_path=paths[i], ditch=3, geometry_aug=geometry_aug, intensity_aug=intensity_aug, identity=identity, electron=electron)
+            scans = DicomDataset(cbct_path=paths[i+1], ct_path=paths[i], ditch=3, 
+                                 geometry_aug=geometry_aug, intensity_aug=intensity_aug, 
+                                 identity=identity, electron=electron, position=position)
             datasets = datasets + [scans]
             
         datasets = ConcatDataset(datasets)
