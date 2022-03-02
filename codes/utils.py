@@ -150,7 +150,7 @@ def show_raw_pixel(slices):
 def valid_slices(cbcts):
     found_start = False
     start = 0
-    end = -1
+    end = len(cbcts)-1
     
     # iterate through cbct slices, and find which regions aren't all black (-1000)
     for idx, sli in enumerate(cbcts):
