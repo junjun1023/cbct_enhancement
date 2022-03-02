@@ -26,24 +26,37 @@ class Dataset(BaseDataset):
         preprocessing (albumentations.Compose): data preprocessing 
             (e.g. noralization, shape manipulation, etc.)
     """
-    def __init__(self, path, intensity_aug=None, geometry_aug=None, identity=False, electron=False, position="pelvic"):
+    def __init__(self, path, intensity_aug=None, geometry_aug=None, identity=False, electron=False, position="pelvic", coord=False):
         paths = sorted(glob.glob(path))
         self.xs = []
         self.ys = []
+        self.encoding = []
         
         # read cbct and ct
         for i in range(0, len(paths), 2):
             cbct_slices = read_dicom(paths[i+1])
             ct_slices = read_dicom(paths[i])
-
             region = valid_slices(cbct_slices)
-            # ditch first and last 3
+            # ditch first and last 3                
             self.xs = self.xs + cbct_slices[region[0] + 3: region[1] - 3]
             self.ys = self.ys + ct_slices[region[0] + 3: region[1] - 3]
+            
+            encoding = []
+            length = (region[1]-3) - (region[0]+3)
+            quotient, remainder = length // 5, length % 5
+            for i in range(5):
+                cnt = quotient
+                if remainder > 0:
+                    cnt = cnt + 1
+                    remainder = remainder - 1
+                encoding = encoding + [i for _ in range(cnt)]
+            self.encoding = self.encoding + encoding
 
+            
         self.position = position
         self.identity = identity
         self.electron = electron
+        self.coord = coord
         self.intensity_aug = intensity_aug
         self.geometry_aug = geometry_aug
         
@@ -60,6 +73,18 @@ class Dataset(BaseDataset):
             else:
                 assert False, "Position: pelvic, abdomen, chest, and headneck"
 
+        self.p_encoding = 0
+        if position == "headneck":
+            self.p_encoding = 0
+        elif position == "chest":
+            self.p_encoding = 1
+        elif position == "abdomen":
+            self.p_encoding = 2
+        elif position == "pelvic":
+            self.p_encoding = 3
+        else:
+            assert False, "Position: pelvic, abdomen, chest, and headneck"        
+            
         
     
     def __getitem__(self, i):
@@ -67,6 +92,8 @@ class Dataset(BaseDataset):
         # read img
         x = self.xs[i].pixel_array.copy()
         y = self.ys[i].pixel_array.copy()
+        encoding = self.encoding[i]
+        p_encoding = self.p_encoding
         
        ############################
         # Data denoising
@@ -109,7 +136,6 @@ class Dataset(BaseDataset):
         
         bone_x = refine_mask(bone_x, bone_y)
 
-        
         if self.geometry_aug:
             sample = self.geometry_aug(image=x, image0=y, image1=air_x, image2=bone_x, image3=air_y, image4=bone_y)
             x, y, air_x, bone_x, air_y, bone_y = sample["image"], sample["image0"], \
@@ -129,10 +155,19 @@ class Dataset(BaseDataset):
         air_y = np.expand_dims(air_y, 0).astype(np.float32)
         bone_y = np.expand_dims(bone_y, 0).astype(np.float32)
     
+    
+        encoding = np.ones(x.shape, dtype=np.float32) * encoding
+        p_encoding = np.ones(x.shape, dtype=np.float32) * p_encoding
+
         if self.identity:
+            if self.coord:
+                coord_y = np.concatenate((y, encoding, p_encoding), axis=0)
+                return coord_y, y, air_y, bone_y, air_y, bone_y
             return y, y, air_y, bone_y, air_y, bone_y
  
-
+        if self.coord:
+            coord_x = np.concatenate((x, encoding, p_encoding), axis=0)
+            return coord_x, y, air_x, bone_x, air_y, bone_y            
         return x, y, air_x, bone_x, air_y, bone_y
     
         
@@ -150,7 +185,7 @@ class DicomDataset(BaseDataset):
         preprocessing (albumentations.Compose): data preprocessing 
             (e.g. noralization, shape manipulation, etc.)
     """
-    def __init__(self, cbct_path, ct_path, ditch=3, intensity_aug=None, geometry_aug=None, identity=False, electron=False, position="pelvic"):
+    def __init__(self, cbct_path, ct_path, ditch=3, intensity_aug=None, geometry_aug=None, identity=False, electron=False, position="pelvic", coord=False):
 
         # read cbct and ct
         assert cbct_path.split("/")[-1].split("_")[0] == ct_path.split("/")[-1].split("_")[0]     
@@ -160,13 +195,26 @@ class DicomDataset(BaseDataset):
         ct_slices = read_dicom(ct_path)
 
         region = valid_slices(cbct_slices)
-        # ditch first and last 2
-        # make ct more than cbct
+        # ditch first and last 3
         self.xs = cbct_slices[region[0] + ditch: region[1] - ditch]
         self.ys = ct_slices[region[0] + ditch: region[1] - ditch]
-        
-        self.electron = electron
+
+        encoding = []
+        length = (region[1] - ditch) - (region[0] + ditch)
+        quotient, remainder = length // 5, length % 5
+
+        for i in range(5):
+            cnt = quotient
+            if remainder > 0:
+                cnt = cnt + 1
+                remainder = remainder - 1
+            encoding = encoding + [i for _ in range(cnt)]
+        self.encoding = encoding
+
+        self.position = position
         self.identity = identity
+        self.electron = electron
+        self.coord = coord
         self.intensity_aug = intensity_aug
         self.geometry_aug = geometry_aug
 
@@ -184,11 +232,26 @@ class DicomDataset(BaseDataset):
                 assert False, "Position: pelvic, abdomen, chest, and headneck"
 
                 
+        self.p_encoding = 0
+        if position == "headneck":
+            self.p_encoding = 0
+        elif position == "chest":
+            self.p_encoding = 1
+        elif position == "abdomen":
+            self.p_encoding = 2
+        elif position == "pelvic":
+            self.p_encoding = 3
+        else:
+            assert False, "Position: pelvic, abdomen, chest, and headneck"      
+                
+                
     def __getitem__(self, i):
 
         # read img
         x = self.xs[i].pixel_array.copy()
         y = self.ys[i].pixel_array.copy()
+        encoding = self.encoding[i]
+        p_encoding = self.p_encoding
         
        ############################
         # Data denoising
@@ -251,10 +314,18 @@ class DicomDataset(BaseDataset):
         air_y = np.expand_dims(air_y, 0).astype(np.float32)
         bone_y = np.expand_dims(bone_y, 0).astype(np.float32)
     
+        encoding = np.ones(x.shape, dtype=np.float32) * encoding
+        p_encoding = np.ones(x.shape, dtype=np.float32) * p_encoding
+
         if self.identity:
+            if self.coord:
+                coord_y = np.concatenate((y, encoding, p_encoding), axis=0)
+                return coord_y, y, air_y, bone_y, air_y, bone_y
             return y, y, air_y, bone_y, air_y, bone_y
  
-
+        if self.coord:
+            coord_x = np.concatenate((x, encoding, p_encoding), axis=0)
+            return coord_x, y, air_x, bone_x, air_y, bone_y            
         return x, y, air_x, bone_x, air_y, bone_y
     
         
@@ -268,7 +339,7 @@ class DicomDataset(BaseDataset):
     
     
 
-def DicomsDataset(path, geometry_aug=None, intensity_aug=None, identity=False, electron=False, position="pelvic"):
+def DicomsDataset(path, geometry_aug=None, intensity_aug=None, identity=False, electron=False, position="pelvic", coord=False):
         paths = sorted(glob.glob(path))
         
         datasets = []
@@ -276,7 +347,7 @@ def DicomsDataset(path, geometry_aug=None, intensity_aug=None, identity=False, e
         for i in range(0, len(paths), 2):
             scans = DicomDataset(cbct_path=paths[i+1], ct_path=paths[i], ditch=3, 
                                  geometry_aug=geometry_aug, intensity_aug=intensity_aug, 
-                                 identity=identity, electron=electron, position=position)
+                                 identity=identity, electron=electron, position=position, coord=coord)
             datasets = datasets + [scans]
             
         datasets = ConcatDataset(datasets)
