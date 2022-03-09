@@ -355,9 +355,6 @@ class DicomSegmentDataset(BaseDataset):
             ys += [y]
             air_ys += [air_y]
             bone_ys += [bone_y]
-            
-            encodings += self.encoding[i]
-            p_encodings += self.p_encoding[i]
         
         xs = np.stack(xs, axis=-1)
         air_xs = np.stack(air_xs, axis=-1)

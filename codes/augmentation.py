@@ -107,26 +107,37 @@ def validation_intensity_augmentation():
                                                               'image5': "image", \
                                                               "image6": "image"})
 
+    
 def get_training_augmentation():
-        train_transform = [
+        img_transform = [
                 # ref: https://github.com/albumentations-team/albumentations/issues/640
                 albu.RandomCrop(height=384, width=384, always_apply=True),
                 albu.HorizontalFlip(),
-                albu.ShiftScaleRotate(scale_limit=0.1, rotate_limit=45, shift_limit=0.1, p=0.5, border_mode=0),
+                albu.ShiftScaleRotate(scale_limit=0.1, rotate_limit=0, shift_limit=0.1, p=0.5, border_mode=0),
                 albu.LongestMaxSize(max_size=384, interpolation=cv2.INTER_LINEAR_EXACT, always_apply=True),
                 albu.PadIfNeeded(min_height=384, min_width=384, always_apply=True, border_mode=0),
         ]
-        return albu.Compose(train_transform, additional_targets={'image0': 'image', 'image1': 'image', 'image2': 'image', 'image3': 'image', 'image4': 'image'})
-
-
-
+        return albu.Compose(img_transform, additional_targets={'image0': 'image', \
+                                                               'image1': 'image', \
+                                                               'image2': 'image', \
+                                                               'image3': 'image', \
+                                                               'image4': 'image', \
+                                                              'image5': "image", \
+                                                              "image6": "image"})
+    
+    
 def get_validation_augmentation():
         """Add paddings to make image shape divisible by 32"""
-        test_transform = [
+        img_transform = [
                 # ref: https://github.com/albumentations-team/albumentations/issues/640
                 albu.CenterCrop(height=384, width=384, always_apply=True),
                 albu.LongestMaxSize(max_size=384, interpolation=cv2.INTER_LINEAR_EXACT, always_apply=True),
                 albu.PadIfNeeded(384, 384, always_apply=True, border_mode=0)
         ]
-        return albu.Compose(test_transform, additional_targets={'image0': 'image', 'image1': 'image', 'image2': 'image', 'image3': 'image', 'image4': 'image'})
-
+        return albu.Compose(img_transform, additional_targets={'image0': 'image', \
+                                                               'image1': 'image', \
+                                                               'image2': 'image', \
+                                                               'image3': 'image', \
+                                                               'image4': 'image', \
+                                                              'image5': "image", \
+                                                              "image6": "image"})
