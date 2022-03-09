@@ -14,7 +14,6 @@ class TemporalShift(nn.Module):
         self.net = net
         self.n_segment = n_segment
         self.fold_div = n_div
-        self.inplace = inplace
 
         print('=> Using fold div: {}'.format(self.fold_div))
 
@@ -55,14 +54,14 @@ def make_temporal_shift(net, n_segment, n_div=8, place='blockres'):
                 blocks[i] = TemporalShift(b, n_segment=this_segment, n_div=n_div)
             return nn.Sequential(*(blocks))
 
-        net.layer1 = make_block_temporal(net.layer1, n_segment_list[0])
-        net.layer2 = make_block_temporal(net.layer2, n_segment_list[1])
-        net.layer3 = make_block_temporal(net.layer3, n_segment_list[2])
-        net.layer4 = make_block_temporal(net.layer4, n_segment_list[3])
+        net.layer1 = make_block_temporal(net.encoder.layer1, n_segment_list[0])
+        net.layer2 = make_block_temporal(net.encoder.layer2, n_segment_list[1])
+        net.layer3 = make_block_temporal(net.encoder.layer3, n_segment_list[2])
+        net.layer4 = make_block_temporal(net.encoder.layer4, n_segment_list[3])
 
     elif 'blockres' in place:
         n_round = 1
-        if len(list(net.layer3.children())) >= 23:
+        if len(list(net.encoder.layer3.children())) >= 23:
             n_round = 2
             print('=> Using n_round {} to insert temporal shift'.format(n_round))
 
@@ -74,7 +73,7 @@ def make_temporal_shift(net, n_segment, n_div=8, place='blockres'):
                     blocks[i].conv1 = TemporalShift(b.conv1, n_segment=this_segment, n_div=n_div)
             return nn.Sequential(*blocks)
 
-        net.layer1 = make_block_temporal(net.layer1, n_segment_list[0])
-        net.layer2 = make_block_temporal(net.layer2, n_segment_list[1])
-        net.layer3 = make_block_temporal(net.layer3, n_segment_list[2])
-        net.layer4 = make_block_temporal(net.layer4, n_segment_list[3])
+        net.layer1 = make_block_temporal(net.encoder.layer1, n_segment_list[0])
+        net.layer2 = make_block_temporal(net.encoder.layer2, n_segment_list[1])
+        net.layer3 = make_block_temporal(net.encoder.layer3, n_segment_list[2])
+        net.layer4 = make_block_temporal(net.encoder.layer4, n_segment_list[3])
