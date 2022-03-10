@@ -25,6 +25,9 @@ class TemporalShift(nn.Module):
     def shift(x, n_segment, fold_div=3):
         nt, c, h, w = x.size()
         n_batch = nt // n_segment
+        if n_batch == 0:
+            n_batch = 1
+            n_segment = 1
         x = x.view(n_batch, n_segment, c, h, w)
 
         fold = c // fold_div
