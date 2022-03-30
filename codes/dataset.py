@@ -245,7 +245,7 @@ class DicomSegmentDataset(BaseDataset):
         # ditch first and last 3
         self.xs = cbct_slices[region[0] + ditch: region[1] - ditch]
         self.ys = ct_slices[region[0] + ditch: region[1] - ditch]
-
+        
         encoding = []
         length = (region[1] - ditch) - (region[0] + ditch)
         quotient, remainder = length // 5, length % 5
@@ -257,8 +257,6 @@ class DicomSegmentDataset(BaseDataset):
                 remainder = remainder - 1
             encoding = encoding + [i for _ in range(cnt)]
         self.encoding = encoding
-
-        assert not (g_coord and segment > 1), "Currently not support for multi-frame and global coordinates"
         
         self.position = position
         self.segment = segment
@@ -305,49 +303,62 @@ class DicomSegmentDataset(BaseDataset):
         ys = []
         air_ys = []
         bone_ys = []
+        encodings = []
+        
+        index = np.array(range(self.segment)) - self.segment // 2
 
-        for s in range(self.segment):
+        for s in index:
             i = s + idx
-        
-            x = self.xs[i].pixel_array.copy()
-            y = self.ys[i].pixel_array.copy()
+            
+            if i < 0 or i >= self.__len__():
+                x = np.zeros((512, 512), dtype=np.float32)
+                y = np.zeros((512, 512), dtype=np.float32)
+                encoding = 0 if i<0 else 4
+                air_x = np.zeros((512, 512), dtype=np.float32)
+                bone_x = np.zeros((512, 512), dtype=np.float32)
+                air_y = np.zeros((512, 512), dtype=np.float32)
+                bone_y = np.zeros((512, 512), dtype=np.float32)       
+                
+            else:
+                x = self.xs[i].pixel_array.copy()
+                y = self.ys[i].pixel_array.copy()
+                encoding = self.encoding[i]
+               ############################
+                # Data denoising
+                ###########################  
+                denoise_bound = (-512, -257)
+                if self.electron:
+                    y = (y - self.y_norm[0])/self.y_norm[1]
+                    x = (x - self.x_norm[0])/self.x_norm[1]
+                    denoise_bound = (0.4, 0.5)
 
-           ############################
-            # Data denoising
-            ###########################  
-            denoise_bound = (-512, -257)
-            if self.electron:
-                y = (y - self.y_norm[0])/self.y_norm[1]
-                x = (x - self.x_norm[0])/self.x_norm[1]
-                denoise_bound = (0.4, 0.5)
+                mask_x = DenoiseMask(bound=denoise_bound, always_apply=True)(image=x)["image"]
+                mask_y = DenoiseMask(bound=denoise_bound, always_apply=True)(image=y)["image"]
 
-            mask_x = DenoiseMask(bound=denoise_bound, always_apply=True)(image=x)["image"]
-            mask_y = DenoiseMask(bound=denoise_bound, always_apply=True)(image=y)["image"]
-        
-            view_bound = (-500, 500)
-            if self.electron:
-                view_bound = (0.5, 1.5)
-            x = hu_clip(x, view_bound, None, True)
-            y = hu_clip(y, view_bound, None, True)
+                view_bound = (-500, 500)
+                if self.electron:
+                    view_bound = (0.5, 1.5)
+                x = hu_clip(x, view_bound, None, True)
+                y = hu_clip(y, view_bound, None, True)
 
-            x = x * mask_x
-            y = y * mask_y
+                x = x * mask_x
+                y = y * mask_y
 
-           ############################
-            # Get air bone mask
-            ###########################          
-            air_bound = (-500, -499)
-            bone_bound = (255, 256)
-            if self.electron:
-                air_bound = (0.5, 0.5009)
-                bone_bound = (1.2, 1.2009)
+               ############################
+                # Get air bone mask
+                ###########################          
+                air_bound = (-500, -499)
+                bone_bound = (255, 256)
+                if self.electron:
+                    air_bound = (0.5, 0.5009)
+                    bone_bound = (1.2, 1.2009)
 
-            sample = AirBoneMask(bound=view_bound, air_bound=air_bound, bone_bound=bone_bound, always_apply=True)(image=x)["image"]
-            air_x, bone_x = sample[0, :, :], sample[1, :, :]
-            sample = AirBoneMask(bound=view_bound, air_bound=air_bound, bone_bound=bone_bound, always_apply=True)(image=y)["image"]
-            air_y, bone_y = sample[0, :, :], sample[1, :, :]
+                sample = AirBoneMask(bound=view_bound, air_bound=air_bound, bone_bound=bone_bound, always_apply=True)(image=x)["image"]
+                air_x, bone_x = sample[0, :, :], sample[1, :, :]
+                sample = AirBoneMask(bound=view_bound, air_bound=air_bound, bone_bound=bone_bound, always_apply=True)(image=y)["image"]
+                air_y, bone_y = sample[0, :, :], sample[1, :, :]
 
-            bone_x = refine_mask(bone_x, bone_y)
+                bone_x = refine_mask(bone_x, bone_y)
 
             xs += [x]
             air_xs += [air_x]
@@ -355,6 +366,7 @@ class DicomSegmentDataset(BaseDataset):
             ys += [y]
             air_ys += [air_y]
             bone_ys += [bone_y]
+            encodings += [encoding]
         
         xs = np.stack(xs, axis=-1)
         air_xs = np.stack(air_xs, axis=-1)
@@ -362,7 +374,7 @@ class DicomSegmentDataset(BaseDataset):
         ys = np.stack(ys, axis=-1)
         air_ys = np.stack(air_ys, axis=-1)
         bone_ys = np.stack(bone_ys, axis=-1)
-        
+
         
         if self.geometry_aug:
             sample = self.geometry_aug(image=xs, image0=ys, image1=air_xs, image2=bone_xs, image3=air_ys, image4=bone_ys)
@@ -377,23 +389,29 @@ class DicomSegmentDataset(BaseDataset):
                                                                                                                         sample["image1"], sample["image2"], \
                                                                                                                         sample["image3"], sample["image4"]
         
-
-        xs = np.moveaxis(xs, -1, 0)
-        ys = np.moveaxis(ys, -1, 0)
-        air_xs = np.moveaxis(air_xs, -1, 0)
-        bone_xs = np.moveaxis(bone_xs, -1, 0)
-        air_ys = np.moveaxis(air_ys, -1, 0)
-        bone_ys = np.moveaxis(bone_ys, -1, 0)
-
+        encodings = np.ones(xs.shape, dtype=np.float32) * encodings
+        encodings = np.expand_dims(np.moveaxis(encodings, -1, 0), 1)
+        xs = np.expand_dims(np.moveaxis(xs, -1, 0), 1)
+        ys = np.expand_dims(np.moveaxis(ys, -1, 0), 1)
+        air_xs = np.expand_dims(np.moveaxis(air_xs, -1, 0), 1)
+        bone_xs = np.expand_dims(np.moveaxis(bone_xs, -1, 0), 1)
+        air_ys = np.expand_dims(np.moveaxis(air_ys, -1, 0), 1)
+        bone_ys = np.expand_dims(np.moveaxis(bone_ys, -1, 0), 1)
         
         if self.identity:
+            if self.g_coord:
+                y_coord = np.concatenate((ys, encodings), axis=1)
+                return y_coord, ys, air_ys, bone_ys, air_ys, bone_ys
             return ys, ys, air_ys, bone_ys, air_ys, bone_ys
-
+        
+        if self.g_coord:
+            x_coord = np.concatenate((xs, encodings), axis=1)
+            return x_coord, ys, air_xs, bone_xs, air_ys, bone_ys
         return xs, ys, air_xs, bone_xs, air_ys, bone_ys
     
         
     def __len__(self):
-        return len(self.xs)-self.segment
+        return len(self.xs)
     
     
     def patientID(self):
@@ -414,7 +432,7 @@ class DicomSegmentDataset(BaseDataset):
 
     
 def DicomsSegmentDataset(path, geometry_aug=None, intensity_aug=None, 
-                         identity=False, electron=False, position="pelvic", segment=8):
+                         identity=False, electron=False, position="pelvic", segment=8, g_coord=False, l_coord=False):
         paths = sorted(glob.glob(path))
         
         datasets = []
@@ -422,7 +440,7 @@ def DicomsSegmentDataset(path, geometry_aug=None, intensity_aug=None,
         for i in range(0, len(paths), 2):
             scans = DicomSegmentDataset(cbct_path=paths[i+1], ct_path=paths[i], ditch=3, segment=segment, 
                                  geometry_aug=geometry_aug, intensity_aug=intensity_aug, 
-                                 identity=identity, electron=electron, position=position)
+                                 identity=identity, electron=electron, position=position, g_coord=g_coord, l_coord=l_coord)
             datasets = datasets + [scans]
             
         datasets = ConcatDataset(datasets)
