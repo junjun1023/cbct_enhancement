@@ -21,7 +21,7 @@ class PSNR:
         if mse > 0:
             return 10 * torch.log10(_max / mse)
         
-        return 99
+        return 99 * torch.ones((1), dtype=torch.float)
 
     
 class SNR:
