@@ -347,8 +347,8 @@ class DicomSegmentDataset(BaseDataset):
                ############################
                 # Get air bone mask
                 ###########################          
-                air_bound = (-500, -499)
-                bone_bound = (255, 256)
+                air_bound = (-500, -426) # -500, -426
+                bone_bound = (400, 500) # 400, 500
                 if self.electron:
                     air_bound = (0.5, 0.5009)
                     bone_bound = (1.2, 1.2009)
@@ -389,18 +389,24 @@ class DicomSegmentDataset(BaseDataset):
                                                                                                                         sample["image1"], sample["image2"], \
                                                                                                                         sample["image3"], sample["image4"]
         
-        xs = np.moveaxis(xs, -1, 0)
-        air_xs = np.expand_dims(air_xs[:, :, 1], 0)
-        bone_xs = np.expand_dims(bone_xs[:, :, 1], 0)
-        
-        ys = np.expand_dims(ys[:, :, 1], 0) 
-        air_ys = np.expand_dims(air_ys[:, :, 1], 0)
-        bone_ys = np.expand_dims(bone_ys[:, :, 1], 0)
+        encodings = np.ones(xs.shape, dtype=np.float32) * encodings
+        encodings = np.expand_dims(np.moveaxis(encodings, -1, 0), 1)
+        xs = np.expand_dims(np.moveaxis(xs, -1, 0), 1)
+        ys = np.expand_dims(np.moveaxis(ys, -1, 0), 1)
+        air_xs = np.expand_dims(np.moveaxis(air_xs, -1, 0), 1)
+        bone_xs = np.expand_dims(np.moveaxis(bone_xs, -1, 0), 1)
+        air_ys = np.expand_dims(np.moveaxis(air_ys, -1, 0), 1)
+        bone_ys = np.expand_dims(np.moveaxis(bone_ys, -1, 0), 1)
         
         if self.identity:
-            yy = np.concatenate([ys, ys, ys], axis=0)
-            return yy, ys, air_ys, bone_ys, air_ys, bone_ys
+            if self.g_coord:
+                y_coord = np.concatenate((ys, encodings), axis=1)
+                return y_coord, ys, air_ys, bone_ys, air_ys, bone_ys
+            return ys, ys, air_ys, bone_ys, air_ys, bone_ys
         
+        if self.g_coord:
+            x_coord = np.concatenate((xs, encodings), axis=1)
+            return x_coord, ys, air_xs, bone_xs, air_ys, bone_ys
         return xs, ys, air_xs, bone_xs, air_ys, bone_ys
     
         
