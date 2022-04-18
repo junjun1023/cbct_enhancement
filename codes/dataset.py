@@ -347,8 +347,8 @@ class DicomSegmentDataset(BaseDataset):
                ############################
                 # Get air bone mask
                 ###########################          
-                air_bound = (-500, -426) # -500, -426
-                bone_bound = (400, 500) # 400, 500
+                air_bound = (-500, -499) # -500, -426
+                bone_bound = (255, 256) # 400, 500
                 if self.electron:
                     air_bound = (0.5, 0.5009)
                     bone_bound = (1.2, 1.2009)
