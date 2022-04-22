@@ -400,13 +400,11 @@ class DicomSegmentDataset(BaseDataset):
         
         if self.identity:
             if self.g_coord:
-                y_coord = np.concatenate((ys, encodings), axis=1)
-                return y_coord, ys, air_ys, bone_ys, air_ys, bone_ys
+                return ys, ys, air_ys, bone_ys, air_ys, bone_ys, encodings
             return ys, ys, air_ys, bone_ys, air_ys, bone_ys
         
         if self.g_coord:
-            x_coord = np.concatenate((xs, encodings), axis=1)
-            return x_coord, ys, air_xs, bone_xs, air_ys, bone_ys
+            return xs, ys, air_xs, bone_xs, air_ys, bone_ys, encodings
         return xs, ys, air_xs, bone_xs, air_ys, bone_ys
     
         
