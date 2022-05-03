@@ -380,22 +380,14 @@ class DicomSegmentDataset(BaseDataset):
                                                                                                                         sample["image1"], sample["image2"], \
                                                                                                                         sample["image3"], sample["image4"]
         
-#         encodings = np.ones(xs.shape, dtype=np.float32) * encodings
-#         encodings = np.expand_dims(np.moveaxis(encodings, -1, 0), 1)
-#         xs = np.expand_dims(np.moveaxis(xs, -1, 0), 1)
-#         ys = np.expand_dims(np.moveaxis(ys, -1, 0), 1)
-#         air_xs = np.expand_dims(np.moveaxis(air_xs, -1, 0), 1)
-#         bone_xs = np.expand_dims(np.moveaxis(bone_xs, -1, 0), 1)
-#         air_ys = np.expand_dims(np.moveaxis(air_ys, -1, 0), 1)
-#         bone_ys = np.expand_dims(np.moveaxis(bone_ys, -1, 0), 1)
-        
         encodings = np.ones(xs.shape, dtype=np.float32) * encodings
-        xs = np.moveaxis(xs, -1, 0)
-        ys = np.moveaxis(ys, -1, 0)
-        air_xs = np.expand_dims(np.moveaxis(air_xs, -1, 0)[1, :], 0)
-        bone_xs = np.expand_dims(np.moveaxis(bone_xs, -1, 0)[1, :], 0)
-        air_ys = np.expand_dims(np.moveaxis(air_ys, -1, 0)[1, :], 0)
-        bone_ys = np.expand_dims(np.moveaxis(bone_ys, -1, 0)[1, :], 0)
+        encodings = np.expand_dims(np.moveaxis(encodings, -1, 0), 1)
+        xs = np.expand_dims(np.moveaxis(xs, -1, 0), 1)
+        ys = np.expand_dims(np.moveaxis(ys, -1, 0), 1)
+        air_xs = np.expand_dims(np.moveaxis(air_xs, -1, 0), 1)
+        bone_xs = np.expand_dims(np.moveaxis(bone_xs, -1, 0), 1)
+        air_ys = np.expand_dims(np.moveaxis(air_ys, -1, 0), 1)
+        bone_ys = np.expand_dims(np.moveaxis(bone_ys, -1, 0), 1)
         
         if self.identity:
             xs = ys
