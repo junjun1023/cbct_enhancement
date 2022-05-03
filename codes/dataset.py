@@ -101,7 +101,7 @@ class DicomDataset(BaseDataset):
        ############################
         # Data denoising
         ###########################  
-        denoise_bound = (-512, -257)
+        denoise_bound = (-500, -499)
         if self.electron:
             y = (y - self.y_norm[0])/self.y_norm[1]
             x = (x - self.x_norm[0])/self.x_norm[1]
@@ -109,20 +109,16 @@ class DicomDataset(BaseDataset):
             
         mask_x = DenoiseMask(bound=denoise_bound, always_apply=True)(image=x)["image"]
         mask_y = DenoiseMask(bound=denoise_bound, always_apply=True)(image=y)["image"]
-        
-       ############################
-        # Dicom Window Shift Augmentation
-        ###########################  
+
         view_bound = (-500, 500)
         if self.electron:
             view_bound = (0.5, 1.5)
         x = hu_clip(x, view_bound, None, True)
         y = hu_clip(y, view_bound, None, True)
 
-        x = x * mask_x
-        y = y * mask_y
+        x_mask = x * mask_x
+        y_mask = y * mask_y
 
-        space = view_bound[1] - view_bound[0]
        ############################
         # Get air bone mask
         ###########################          
@@ -165,25 +161,20 @@ class DicomDataset(BaseDataset):
         local_encoding = self.make_grid2d(w, h)
         
         if self.identity:
-            coord_y = y
-            if self.g_coord and self.l_coord:
-                coord_y = np.concatenate((y, encoding, p_encoding, local_encoding), axis=0)
-            elif self.g_coord and not self.l_coord:
-                coord_y = np.concatenate((y, local_encoding), axis=0)
-            elif not self.g_coord and self.l_coord:
-                coord_y = np.concatenate((y, encoding, p_encoding), axis=0)
-            return coord_y, y, air_y, bone_y, air_y, bone_y
+            x = y
+            air_x = air_y
+            bone_x = bone_y
  
-        coord_x = x
         if self.g_coord and self.l_coord:
-            coord_x = np.concatenate((x, encoding, p_encoding, local_encoding), axis=0)
+            return x, y, air_x, bone_x, air_y, bone_y, p_encoding, local_encoding
         elif self.g_coord and not self.l_coord:
-            coord_x = np.concatenate((x, local_encoding), axis=0)
+            return x, y, air_x, bone_x, air_y, bone_y, p_encoding
         elif not self.g_coord and self.l_coord:
-            coord_x = np.concatenate((x, encoding, p_encoding), axis=0)        
+            return x, y, air_x, bone_x, air_y, bone_y, local_encoding    
 
-        return coord_x, y, air_x, bone_x, air_y, bone_y
-    
+        return x, y, air_x, bone_x, air_y, bone_y
+
+        
         
     def __len__(self):
         return len(self.xs)
@@ -347,8 +338,8 @@ class DicomSegmentDataset(BaseDataset):
                ############################
                 # Get air bone mask
                 ###########################          
-                air_bound = (-500, -499) # -500, -426
-                bone_bound = (255, 256) # 400, 500
+                air_bound =(-500, -499) # -500, -300
+                bone_bound = (255, 256) # 300, 500
                 if self.electron:
                     air_bound = (0.5, 0.5009)
                     bone_bound = (1.2, 1.2009)
@@ -389,19 +380,27 @@ class DicomSegmentDataset(BaseDataset):
                                                                                                                         sample["image1"], sample["image2"], \
                                                                                                                         sample["image3"], sample["image4"]
         
+#         encodings = np.ones(xs.shape, dtype=np.float32) * encodings
+#         encodings = np.expand_dims(np.moveaxis(encodings, -1, 0), 1)
+#         xs = np.expand_dims(np.moveaxis(xs, -1, 0), 1)
+#         ys = np.expand_dims(np.moveaxis(ys, -1, 0), 1)
+#         air_xs = np.expand_dims(np.moveaxis(air_xs, -1, 0), 1)
+#         bone_xs = np.expand_dims(np.moveaxis(bone_xs, -1, 0), 1)
+#         air_ys = np.expand_dims(np.moveaxis(air_ys, -1, 0), 1)
+#         bone_ys = np.expand_dims(np.moveaxis(bone_ys, -1, 0), 1)
+        
         encodings = np.ones(xs.shape, dtype=np.float32) * encodings
-        encodings = np.expand_dims(np.moveaxis(encodings, -1, 0), 1)
-        xs = np.expand_dims(np.moveaxis(xs, -1, 0), 1)
-        ys = np.expand_dims(np.moveaxis(ys, -1, 0), 1)
-        air_xs = np.expand_dims(np.moveaxis(air_xs, -1, 0), 1)
-        bone_xs = np.expand_dims(np.moveaxis(bone_xs, -1, 0), 1)
-        air_ys = np.expand_dims(np.moveaxis(air_ys, -1, 0), 1)
-        bone_ys = np.expand_dims(np.moveaxis(bone_ys, -1, 0), 1)
+        xs = np.moveaxis(xs, -1, 0)
+        ys = np.moveaxis(ys, -1, 0)
+        air_xs = np.expand_dims(np.moveaxis(air_xs, -1, 0)[1, :], 0)
+        bone_xs = np.expand_dims(np.moveaxis(bone_xs, -1, 0)[1, :], 0)
+        air_ys = np.expand_dims(np.moveaxis(air_ys, -1, 0)[1, :], 0)
+        bone_ys = np.expand_dims(np.moveaxis(bone_ys, -1, 0)[1, :], 0)
         
         if self.identity:
-            if self.g_coord:
-                return ys, ys, air_ys, bone_ys, air_ys, bone_ys, encodings
-            return ys, ys, air_ys, bone_ys, air_ys, bone_ys
+            xs = ys
+            air_xs = air_ys
+            bone_xs = bone_ys
         
         if self.g_coord:
             return xs, ys, air_xs, bone_xs, air_ys, bone_ys, encodings
@@ -425,10 +424,7 @@ class DicomSegmentDataset(BaseDataset):
 
         return grid
     
-    
-    
 
-    
 def DicomsSegmentDataset(path, geometry_aug=None, intensity_aug=None, 
                          identity=False, electron=False, position="pelvic", segment=8, g_coord=False, l_coord=False):
         paths = sorted(glob.glob(path))
@@ -443,3 +439,6 @@ def DicomsSegmentDataset(path, geometry_aug=None, intensity_aug=None,
             
         datasets = ConcatDataset(datasets)
         return datasets
+    
+    
+    
