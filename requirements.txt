@@ -1,0 +1,17 @@
+adabelief-pytorch==0.2.0
+Babel==2.9.0
+matplotlib==3.3.3
+numpy @ file:///tmp/build/80754af9/numpy_and_numpy_base_1603479643886/work
+opencv-python==4.4.0.46
+pandas==1.1.4
+Pillow==9.0.0
+ptflops @ git+https://github.com/sovrasov/flops-counter.pytorch.git@06793e8ec1b73b154b8078db571ac682125f73ce
+pydicom==2.2.2
+scikit-image==0.19.1
+scikit-learn==0.23.2
+scipy @ file:///tmp/build/80754af9/scipy_1597686650319/work
+segmentation-models-pytorch==0.2.1
+torchcam==0.3.1
+torchvision @ file:///opt/pytorch/vision
+tqdm==4.53.0
+wandb==0.12.9
